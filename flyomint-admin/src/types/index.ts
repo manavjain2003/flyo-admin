@@ -1,17 +1,15 @@
-// Generic envelope every B2C Admin API response is wrapped in.
 export interface ApiEnvelope<T> {
   ServiceResponse: T;
   ServiceStatus: string;
 }
 
-// ---------- Auth ----------
 export interface GetLoginOtpRequest {
   Mobile: string;
 }
 
 export interface GetLoginOtpResponse {
-  OTP: string; // AES encrypted (only returned in non-prod / for dev convenience)
-  UserKey: string; // AES encrypted, must be echoed back on Login
+  OTP: string; 
+  UserKey: string; 
   ErrorCode: string | null;
   Message: string | null;
 }
@@ -19,21 +17,20 @@ export interface GetLoginOtpResponse {
 export interface LoginRequest {
   Mobile: string;
   UserKey: string;
-  OTP: string; // AES encrypted OTP entered by the user
+  OTP: string; 
 }
 
 export interface LoginResponse {
-  UniqueKey: string; // JWT-like token, must be sent on every subsequent request
-  Validity: string; // ISO date string
+  UniqueKey: string; 
+  Validity: string; 
   ErrorCode: string | null;
   Message: string | null;
 }
 
-// ---------- Profile ----------
 export interface ProfileView {
   ViewName: string;
   ViewId: string;
-  Permission: string[]; // e.g. ["R", "W"]
+  Permission: string[];
 }
 
 export interface ProfileResponse {
@@ -47,7 +44,6 @@ export interface ProfileResponse {
   Message: string | null;
 }
 
-// ---------- Roles ----------
 export interface RoleDetail {
   RoleId: number;
   RoleName: string;
@@ -75,9 +71,8 @@ export interface SimpleMessageResponse {
   Message: string | null;
 }
 
-// ---------- Users / Admins ----------
 export interface UserDetail {
-  StaffId: number;
+  UserId: number;
   Title: string;
   Name: string;
   Email: string;
@@ -102,11 +97,10 @@ export interface UserAddRequest {
   IsActive: boolean;
 }
 
-// ---------- Views / Permissions ----------
 export interface ViewDetail {
   Id: number;
   ViewName: string;
-  Permission: string[]; // e.g. ["R", "W"]
+  Permission: string[];
 }
 
 export interface ViewsGetResponse {
@@ -124,8 +118,124 @@ export interface ViewsUpdatePermissionRequest {
   }[];
 }
 
-// ---------- Error logging ----------
+export interface UserUpdateRequest {
+  UserId: number;
+  RoleId: number;
+  IsActive: boolean;
+}
+
 export interface ErrorPostRequest {
   Path: string;
   ErrorMessage: string;
+}
+
+export interface BookingHistoryRequest {
+  PageNumber: number;
+  PageSize: number;
+  StartDate: string;
+  EndDate: string;
+  CurrentStatus: string; 
+  PaymentStatus: string; 
+}
+
+export interface BookingSummary {
+  Id: string;
+  Reference: string;
+  Status: string; 
+  PaymentStatus?: string;
+  TripType: string; 
+  Source: string;
+  Destination: string;
+  Provider: string;
+  Amount: number;
+  PNR: string;
+  BookedAt: string; 
+}
+
+export interface BookingHistoryResponse {
+  Bookings: BookingSummary[];
+  TotalCount: number;
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export type SearchType = "BID" | "MON" | "EID" | "UID" | "PNR";
+
+export interface SearchTransactionRequest {
+  SearchType: SearchType;
+  SearchValue: string;
+}
+
+export interface FlightSegment {
+  AirlineCode: string;
+  AirlineName: string;
+  FlightNumber: string;
+  Cabin: string;
+  Source: string;
+  SourceAirport: string;
+  SourceTime: string;
+  Destination: string;
+  DestinationAirport: string;
+  DestinationTime: string;
+}
+
+export interface PassengerDetail {
+  SNo: number;
+  PassengerName: string;
+  AirlinePNR: string;
+  GDSPNR: string;
+  TicketNo: string;
+  Fare: number;
+  Status: string;
+}
+
+export interface BaggageDetail {
+  Type: string;
+  Sector: string;
+  CheckInBaggage: string;
+  CabinBaggage: string;
+}
+
+export interface FareRulesDetail {
+  Refundability: string;
+  FareCategory: string;
+  DateChangePolicy: string;
+  CancellationBeforeDeparture: string;
+  RescheduleDateChange: string;
+}
+
+export interface BookingDetail {
+  BookingId: string;
+  BookedAt: string;
+  BookingStatus: string;
+  Provider: string;
+  Airline: string;
+  AirlinePNR: string;
+  ProviderRef: string;
+  TicketNumber: string;
+  TicketIssued: boolean;
+  CouponCode?: string;
+  CashbackAmount?: string;
+  EarnStatus?: string;
+  AwaitingFreeCancellation?: string;
+  InsuranceProvider?: string;
+  SpecialInventory?: string;
+  PublishedFareIdentifier?: string;
+  TripType: string;
+  International: boolean;
+  Refunded: boolean;
+  LastUpdated: string;
+  OrderId: string;
+  FareType: string;
+  RefundBlockStatus: string;
+  PartnerName: string;
+  ProviderRefNo: string;
+  TraceId?: string;
+  Segments: FlightSegment[];
+  Passengers: PassengerDetail[];
+  TotalFare: number;
+  Baggage: BaggageDetail[];
+  FareRules: FareRulesDetail;
+  ErrorCode: string | null;
+  Message: string | null;
 }

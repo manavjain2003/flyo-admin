@@ -73,7 +73,7 @@ export default function Roles() {
       showToast("success", res.Message || "Role added successfully.");
       setIsAddOpen(false);
       setRoleName("");
-      loadData(); // manual refresh — no signal
+      loadData(); 
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
@@ -102,7 +102,7 @@ export default function Roles() {
       }
       showToast("success", res.Message || "Role updated successfully.");
       setEditRole(null);
-      loadData(); // manual refresh — no signal
+      loadData(); 
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
@@ -197,7 +197,6 @@ export default function Roles() {
         )}
       </div>
 
-      {/* Add Role modal */}
       <Modal
         title="Add New Role"
         isOpen={isAddOpen}
@@ -225,7 +224,6 @@ export default function Roles() {
         </form>
       </Modal>
 
-      {/* Edit Role modal */}
       <Modal
         title="Edit Role"
         isOpen={!!editRole}

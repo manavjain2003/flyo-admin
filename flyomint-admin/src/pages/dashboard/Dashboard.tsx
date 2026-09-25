@@ -2,18 +2,17 @@ import { useEffect, useState } from "react";
 import {
   Mail, Phone, ShieldCheck, Eye, Pencil,
   TrendingUp, TrendingDown, Plane, Users,
-  Shield, ArrowRight, ArrowUpRight, Globe,
+  Shield, Globe,
   RotateCcw, Navigation, Calendar
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-import { PageHeader, LoadingState } from "../../components/common/UI";
+import { LoadingState } from "../../components/common/UI";
 import { useAuth } from "../../context/AuthContext";
 import { getUsers, getRoles } from "../../api/endpoints";
 
-// ─── Hardcoded flight stats ───────────────────────────────────────────────────
 const TODAY_STATS = {
   totalBookings: 1284,
   oneWay: 512,
@@ -61,7 +60,6 @@ const TOP_ROUTES = [
   { route: "AMS → NYC", bookings: 98,  pct: 45 },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatCard({
   icon: Icon,
@@ -92,7 +90,6 @@ function StatCard({
         overflow: "hidden",
       }}
     >
-      {/* glow blob */}
       <div
         style={{
           position: "absolute",
@@ -170,7 +167,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { profile, isLoading } = useAuth();
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -200,7 +196,6 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: "100vh", background: "rgb(10 10 12)", color: "#F1F5F9", padding: "32px 28px", fontFamily: "'Inter', system-ui, sans-serif" }}>
 
-      {/* ── Header ── */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10B981", boxShadow: "0 0 8px #10B981" }} />
@@ -216,7 +211,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* ── Today's flight stat cards ── */}
       <div style={{ marginBottom: 10 }}>
         <p style={{ fontSize: 11, color: "#475569", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 14 }}>
           TODAY'S BOOKINGS
@@ -229,7 +223,6 @@ export default function Dashboard() {
         <StatCard icon={Globe}      label="International"        value={TODAY_STATS.international}  accent="#F59E0B" sub="cross-border routes" />
       </div>
 
-      {/* ── System stat cards ── */}
       <div style={{ marginBottom: 10 }}>
         <p style={{ fontSize: 11, color: "#475569", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 14 }}>
           SYSTEM
@@ -241,10 +234,8 @@ export default function Dashboard() {
         <StatCard icon={Calendar}    label="Your Role"     value={profile?.RoleName ?? "—"} accent="#34D399" />
       </div>
 
-      {/* ── Charts row ── */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18, marginBottom: 18 }}>
 
-        {/* Weekly stacked bar */}
         <div style={{ background: "#1E293B", border: "1px solid #1E3A5A", borderRadius: 16, padding: "22px 24px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
@@ -270,7 +261,6 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Pie chart */}
         <div style={{ background: "#1E293B", border: "1px solid #1E3A5A", borderRadius: 16, padding: "22px 24px" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", margin: 0, marginBottom: 4 }}>Today's Split</p>
           <p style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>by booking type</p>
@@ -311,10 +301,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Area chart + Top routes ── */}
       <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 18, marginBottom: 18 }}>
 
-        {/* Hourly area */}
         <div style={{ background: "#1E293B", border: "1px solid #1E3A5A", borderRadius: 16, padding: "22px 24px" }}>
           <div style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", margin: 0 }}>Hourly Booking Trend</p>
@@ -347,7 +335,6 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Top routes */}
         <div style={{ background: "#1E293B", border: "1px solid #1E3A5A", borderRadius: 16, padding: "22px 24px" }}>
           <div style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "#F1F5F9", margin: 0 }}>Top Routes Today</p>
@@ -378,7 +365,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Profile card ── */}
       <div style={{ background: "#1E293B", border: "1px solid #1E3A5A", borderRadius: 16, padding: "24px 26px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
           <div>

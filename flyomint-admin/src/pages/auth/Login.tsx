@@ -41,10 +41,6 @@ export default function Login() {
         return;
       }
       setUserKey(res.UserKey);
-      // Testing convenience only: the API echoes the OTP back (encrypted) so
-      // testers don't need a live SMS gateway hooked up yet. Decrypt it and
-      // show it on screen until a real SMS flow is wired in. Remove this
-      // before shipping to production.
       const decryptedOtp = decryptAES(res.OTP);
       if (decryptedOtp) {
         setOtp(decryptedOtp);

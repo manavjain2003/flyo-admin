@@ -10,6 +10,8 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Admins from "./pages/admins/Admins";
 import Roles from "./pages/roles/Roles";
 import Permissions from "./pages/permissions/Permissions";
+import Bookings from "./pages/bookings/Bookings";
+import BookingDetail from "./pages/bookings/BookingDetail";
 import ComingSoon from "./pages/misc/ComingSoon";
 import NotFound from "./pages/misc/NotFound";
 
@@ -38,7 +40,8 @@ export default function App() {
               <Route path="/locations" element={<ComingSoon title="Locations" />} />
               <Route path="/aviation" element={<ComingSoon title="Aviation" />} />
               <Route path="/travelers" element={<ComingSoon title="Travelers" />} />
-              <Route path="/bookings" element={<ComingSoon title="Bookings" />} />
+              <Route path="/bookings" element={<Bookings />} />
+              <Route path="/bookings/:reference" element={<BookingDetail />} />
               <Route path="/configuration" element={<ComingSoon title="Configuration" />} />
               <Route path="/advanced" element={<ComingSoon title="Advanced" />} />
             </Route>

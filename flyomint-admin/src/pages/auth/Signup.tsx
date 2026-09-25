@@ -28,9 +28,6 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      // New admins are created against a default "Viewer" role (RoleId 2 per
-      // the seeded data); an existing Super Admin can promote them afterwards
-      // from the Roles / Admins screens.
       const res = await addUser({
         Title: title,
         Name: name,
@@ -50,8 +47,6 @@ export default function Signup() {
       );
       setTimeout(() => navigate("/login"), 1800);
     } catch {
-      // Self sign-up requires an authenticated session on this API (every
-      // request must carry a UniqueKey), so an anonymous call will 401.
       setError(
         "Self sign-up isn't available yet — ask an existing admin to add you from the Admins page, then log in with your mobile number."
       );

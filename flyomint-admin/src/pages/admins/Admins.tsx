@@ -9,7 +9,7 @@ import {
 } from "../../components/common/UI";
 import { Modal } from "../../components/common/Modal";
 import { FormField, SelectField } from "../../components/common/FormField";
-import { getUsers, addUser, getRoles } from "../../api/endpoints";
+import { getUsers, addUser, updateUser, getRoles } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import type { RoleDetail, UserDetail } from "../../types";
 
@@ -22,6 +22,7 @@ export default function Admins() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewUser, setViewUser] = useState<UserDetail | null>(null);
+  const [editUser, setEditUser] = useState<UserDetail | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -34,29 +35,39 @@ export default function Admins() {
     IsActive: true,
   });
 
+  const [editForm, setEditForm] = useState({ RoleId: "", IsActive: true });
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+
   const { showToast } = useToast();
 
-  async function loadData(signal?: AbortSignal) {
-    setLoading(true);
-    setError(null);
-    try {
-      const [usersRes, rolesRes] = await Promise.all([
-        getUsers(signal),
-        getRoles(signal),
-      ]);
-      if (signal?.aborted) return;
-      setUsers(usersRes.UserDetails ?? []);
-      setRoles(rolesRes.RoleDetails ?? []);
-    } catch (err: unknown) {
+async function loadData(signal?: AbortSignal) {
+  setLoading(true);
+  setError(null);
+  try {
+    const [usersRes, rolesRes] = await Promise.allSettled([
+      getUsers(signal),
+      getRoles(signal),
+    ]);
+
+    if (signal?.aborted) return;
+
+    if (usersRes.status === "fulfilled") {
+      setUsers(usersRes.value?.UserDetails ?? []);
+    } else {
       const isCanceled =
-        (err as { name?: string; code?: string })?.name === "CanceledError" ||
-        (err as { name?: string; code?: string })?.code === "ERR_CANCELED";
-      if (isCanceled) return;
-      setError("Failed to load admins. Please try again.");
-    } finally {
-      if (!signal?.aborted) setLoading(false);
+        usersRes.reason?.name === "CanceledError" ||
+        usersRes.reason?.code === "ERR_CANCELED";
+      if (!isCanceled) setError("Failed to load admins. Please try again.");
     }
+
+    if (rolesRes.status === "fulfilled") {
+      setRoles(rolesRes.value?.RoleDetails ?? []);
+    }
+    // Roles failing silently is fine — it just means the dropdown is empty
+  } finally {
+    if (!signal?.aborted) setLoading(false);
   }
+}
 
   useEffect(() => {
     const controller = new AbortController();
@@ -101,9 +112,46 @@ export default function Admins() {
       showToast("success", res.Message || "Admin added successfully.");
       setIsModalOpen(false);
       resetForm();
-      loadData(); // manual refresh — no signal needed
+      loadData(); 
     } catch {
       setFormError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openEdit(u: UserDetail) {
+    setEditUser(u);
+    setEditForm({ RoleId: u.RoleId, IsActive: u.IsActive });
+    setEditFormError(null);
+  }
+
+  async function handleEditAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+    setEditFormError(null);
+
+    if (!editForm.RoleId) {
+      setEditFormError("Please select a role.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await updateUser({
+        UserId: editUser.UserId,
+        RoleId: Number(editForm.RoleId),
+        IsActive: editForm.IsActive,
+      });
+      if (res.ErrorCode) {
+        setEditFormError(res.Message || "Could not update admin.");
+        return;
+      }
+      showToast("success", res.Message || "Admin updated successfully.");
+      setEditUser(null);
+      loadData(); 
+    } catch {
+      setEditFormError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -167,10 +215,10 @@ export default function Admins() {
               <tbody>
                 {filtered.map((u) => (
                   <tr
-                    key={u.StaffId}
+                    key={u.UserId}
                     className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
                   >
-                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{u.StaffId}</td>
+                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{u.UserId}</td>
                     <td className="px-5 py-3 font-medium">{u.Name}</td>
                     <td className="px-5 py-3 text-[var(--color-text-secondary)]">{u.Email}</td>
                     <td className="px-5 py-3 text-[var(--color-text-secondary)]">{u.RoleName}</td>
@@ -182,7 +230,7 @@ export default function Admins() {
                         <button className="btn-icon" onClick={() => setViewUser(u)}>
                           <Eye size={15} />
                         </button>
-                        <button className="btn-icon">
+                        <button className="btn-icon" onClick={() => openEdit(u)}>
                           <Pencil size={15} />
                         </button>
                       </div>
@@ -195,7 +243,6 @@ export default function Admins() {
         )}
       </div>
 
-      {/* Add Admin modal */}
       <Modal
         title="Add New Admin"
         isOpen={isModalOpen}
@@ -273,7 +320,6 @@ export default function Admins() {
         </form>
       </Modal>
 
-      {/* View Admin modal */}
       <Modal
         title="Admin Details"
         isOpen={!!viewUser}
@@ -288,6 +334,52 @@ export default function Admins() {
             <Row label="Role" value={viewUser.RoleName} />
             <Row label="Status" value={viewUser.IsActive ? "Active" : "Inactive"} />
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        title="Edit Admin"
+        isOpen={!!editUser}
+        onClose={() => setEditUser(null)}
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setEditUser(null)}>
+              Cancel
+            </button>
+            <button className="btn-primary" onClick={handleEditAdmin} disabled={submitting}>
+              {submitting ? "Saving..." : "Save Changes"}
+            </button>
+          </>
+        }
+      >
+        {editUser && (
+          <form onSubmit={handleEditAdmin} className="flex flex-col gap-4">
+            {editFormError && <ErrorBanner message={editFormError} />}
+            <Row label="Name" value={editUser.Name} />
+            <Row label="Email" value={editUser.Email} />
+            <SelectField
+              id="edit-role"
+              label="Role"
+              value={editForm.RoleId}
+              onChange={(e) => setEditForm({ ...editForm, RoleId: e.target.value })}
+            >
+              <option value="">Select a role</option>
+              {roles.map((r) => (
+                <option key={r.RoleId} value={r.RoleId}>
+                  {r.RoleName}
+                </option>
+              ))}
+            </SelectField>
+            <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+              <input
+                type="checkbox"
+                checked={editForm.IsActive}
+                onChange={(e) => setEditForm({ ...editForm, IsActive: e.target.checked })}
+                className="accent-[var(--color-brand)]"
+              />
+              Active
+            </label>
+          </form>
         )}
       </Modal>
     </div>
