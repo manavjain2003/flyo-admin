@@ -239,3 +239,131 @@ export interface BookingDetail {
   ErrorCode: string | null;
   Message: string | null;
 }
+
+
+export interface TransactionLeg {
+  TransactionId: number;
+  BookingId: string;
+  Sector: string;
+  OnwardDate: string;
+  BookingDate: string;
+  GDSPNR: string;
+  AirlinePNR: string;
+  PaymentStatus: string;
+  BookingStatus: string;
+  CurrentStatus: string;
+}
+
+export interface TransactionContactInfo {
+  UserKey: string;
+  Name: string;
+  Email: string;
+  Mobile: string;
+  LoginStatus: boolean;
+}
+
+export interface SearchTransactionResponse {
+  Transactions: TransactionLeg[];
+  BookingInfo: SearchTransactionBookingInfo | null;
+  ContactInfo: TransactionContactInfo | null;
+  BillingInfo: SearchTransactionBillingInfo | null;
+  PaymentInfo: SearchTransactionPaymentInfo | null;
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export interface GroupedBooking {
+  BookingId: string;
+  BookingDate: string;
+  Legs: TransactionLeg[];
+}
+
+// Add these interfaces to types.ts
+
+export interface BookingInfoPassenger {
+  PassengerId: number;
+  FirstName: string;
+  LastName: string;
+  TicketNumber: string | null;
+  Title: string;
+  DOB: string;
+  Nationality: string;
+  PassportNo: string;
+  PaxType: string;
+  BarCode: string | null;
+}
+
+export interface BookingInfoFlightDetail {
+  SID: number;
+  FlightNumber: string;
+  AirlineCode: string;
+  AirlineName: string;
+  DepartureAirportCode: string;
+  DepartureAirportName: string;
+  ArrivalAirportCode: string;
+  ArrivalAirportName: string;
+  DepartureDateTime: string;
+  ArrivalDateTime: string;
+  Duration: string;
+  CabinClass: string;
+  BookingClass: string;
+}
+
+export interface BookingInfoFareDetails {
+  AdultBaseFare: number;
+  AdultTax: number;
+  AdultTotalFare: number;
+  ChildBaseFare: number;
+  ChildTax: number;
+  ChildTotalFare: number;
+  InfantBaseFare: number;
+  InfantTax: number;
+  InfantTotalFare: number;
+}
+
+export interface BookingInfoJourney {
+  Source: string;
+  Destination: string;
+  DepartureDate: string;
+  FlightDetails: BookingInfoFlightDetail[];
+  FareDetails: BookingInfoFareDetails;
+  PassengerDetails: BookingInfoPassenger[];
+  GDSPNR: string;
+  AirlinePNR: string;
+  BookingStatus: string;
+  CurrentStatus: string;
+  ProviderCode: string;
+  ProviderRefId: string;
+  SSRDetails: unknown | null;
+}
+
+export interface SearchTransactionBookingInfo {
+  BookingId: string;
+  InvoiceNumber: string;
+  NumberOfAdult: number;
+  NumberOfChild: number;
+  NumberOfInfant: number;
+  OnwardJourneyDetail: BookingInfoJourney | null;
+  ReturnJourneyDetail: BookingInfoJourney | null;
+  TotalFare: number;
+  SearchType: string;
+  PaymentStatus: string;
+}
+
+export interface SearchTransactionBillingInfo {
+  TotalItineraryFare: number;
+  TotalSSRAmount: number;
+  ConvenienceFee: number;
+  TotalAmountPaid: number;
+  InstantDiscount: number;
+}
+
+export interface SearchTransactionPaymentInfo {
+  PaymentMode: string;
+  PaymentStatus: string;
+  PaymentGatewayRefId: string;
+  PaymentGatewayName: string;
+  PaymentDateTime: string;
+  AmountPaid: number;
+}
+

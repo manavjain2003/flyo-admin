@@ -63,7 +63,6 @@ async function loadData(signal?: AbortSignal) {
     if (rolesRes.status === "fulfilled") {
       setRoles(rolesRes.value?.RoleDetails ?? []);
     }
-    // Roles failing silently is fine — it just means the dropdown is empty
   } finally {
     if (!signal?.aborted) setLoading(false);
   }

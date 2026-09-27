@@ -38,8 +38,11 @@ function statusBadgeClasses(status: string) {
   if (s.includes("FAIL") || s.includes("CANCEL")) {
     return "bg-[var(--color-danger-soft)] text-[var(--color-danger)]";
   }
-  if (s.includes("PEND") || s === "PN") {
+  if (s.includes("PEND") || s.includes("PROGRESS") || s.includes("INITIAT") || s === "PN") {
     return "bg-[var(--color-warning)]/15 text-[var(--color-warning)]";
+  }
+  if (s.includes("NOT INITIATED")) {
+    return "bg-[var(--color-border-soft)] text-[var(--color-text-muted)]";
   }
   return "bg-[var(--color-success-soft)] text-[var(--color-success)]";
 }
@@ -238,42 +241,62 @@ export default function Bookings() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((b) => (
-                  <tr
-                    key={b.Id}
-                    className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
-                  >
-                    <td className="px-5 py-3 font-medium">{b.Reference}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(
-                          b.Status
-                        )}`}
-                      >
-                        {b.Status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-[var(--color-text-secondary)] capitalize">
-                      {b.TripType}
-                    </td>
-                    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Source}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Destination}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Provider}</td>
-                    <td className="px-5 py-3">{b.Amount}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.PNR || "—"}</td>
-                    <td className="px-5 py-3 text-[var(--color-text-muted)]">{b.BookedAt}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-1">
-                        <button className="btn-icon" onClick={() => goToDetail(b)}>
-                          <Eye size={15} />
-                        </button>
-                        <button className="btn-icon" onClick={() => goToDetail(b)}>
-                          <Pencil size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              {filtered.map((b) => (
+  <tr
+    key={b.Id}
+    className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
+  >
+    <td className="px-5 py-3 font-medium">
+      {b.Reference || (
+        <span className="text-[var(--color-text-muted)] italic text-xs">No reference</span>
+      )}
+    </td>
+
+    <td className="px-5 py-3">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(b.Status)}`}
+      >
+        {b.Status}
+      </span>
+    </td>
+
+ <td className="px-5 py-3 text-[var(--color-text-secondary)]">
+  {b.TripType || "—"}
+</td>
+
+    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Source || "—"}</td>
+    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Destination || "—"}</td>
+    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.Provider || "—"}</td>
+
+    <td className="px-5 py-3 text-[var(--color-text-muted)]">
+      {b.Amount > 0 ? `₹${b.Amount.toLocaleString("en-IN")}` : "—"}
+    </td>
+
+    <td className="px-5 py-3 text-[var(--color-text-secondary)]">{b.PNR || "—"}</td>
+    <td className="px-5 py-3 text-[var(--color-text-muted)]">{b.BookedAt || "—"}</td>
+
+    <td className="px-5 py-3">
+      <div className="flex justify-end gap-1">
+        <button
+          className="btn-icon"
+          onClick={() => b.Reference && goToDetail(b)}
+          disabled={!b.Reference}
+          title={b.Reference ? "View booking" : "No booking reference available"}
+        >
+          <Eye size={15} />
+        </button>
+        <button
+          className="btn-icon"
+          onClick={() => b.Reference && goToDetail(b)}
+          disabled={!b.Reference}
+          title={b.Reference ? "Edit booking" : "No booking reference available"}
+        >
+          <Pencil size={15} />
+        </button>
+      </div>
+    </td>
+  </tr>
+))}
               </tbody>
             </table>
           </div>

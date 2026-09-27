@@ -28,14 +28,14 @@ export default function Roles() {
 
   const { showToast } = useToast();
 
-  async function loadData(signal?: AbortSignal) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getRoles(signal);
-      if (signal?.aborted) return;
-      setRoles(res.RoleDetails ?? []);
-    } catch (err: unknown) {
+async function loadData(signal?: AbortSignal) {
+  setLoading(true);
+  setError(null);
+  try {
+    const res = await getRoles(signal);
+    if (signal?.aborted) return;
+    setRoles(res.RoleDetails ?? []);
+  } catch (err) {
       const isCanceled =
         (err as { name?: string; code?: string })?.name === "CanceledError" ||
         (err as { name?: string; code?: string })?.code === "ERR_CANCELED";
