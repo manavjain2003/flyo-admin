@@ -3,12 +3,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import {
   clearStoredUniqueKey,
   getStoredUniqueKey,
+  getStoredValidity,
+  isStoredKeyValid,
   setStoredUniqueKey,
 } from "../api/api";
 import { getProfileDetails } from "../api/endpoints";
@@ -18,20 +21,47 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   profile: ProfileResponse | null;
-  setSession: (uniqueKey: string) => Promise<void>;
+  setSession: (uniqueKey: string, validity?: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
-  hasPermission: (viewId: string, permission: "R" | "W") => boolean;
+  hasPermission: (viewId: string, permission: "R" | "W" | "D") => boolean;
+  getPermissions: (viewId: string) => string[];
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [uniqueKey, setUniqueKey] = useState<string | null>(() =>
-    getStoredUniqueKey()
+    isStoredKeyValid() ? getStoredUniqueKey() : null
   );
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(!!uniqueKey);
+  const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const logout = useCallback(() => {
+    if (expiryTimer.current) clearTimeout(expiryTimer.current);
+    clearStoredUniqueKey();
+    setUniqueKey(null);
+    setProfile(null);
+    setProfileLoaded(false);
+  }, []);
+
+  const scheduleExpiry = useCallback(() => {
+    if (expiryTimer.current) clearTimeout(expiryTimer.current);
+    const validity = getStoredValidity();
+    if (validity === null) return;
+
+    const msRemaining = validity - Date.now();
+    if (msRemaining <= 0) {
+      logout();
+      return;
+    }
+    const delay = Math.min(msRemaining, 2 ** 31 - 1);
+    expiryTimer.current = setTimeout(() => {
+      logout();
+    }, delay);
+  }, [logout]);
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -39,66 +69,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(data);
     } catch {
       setProfile(null);
+    } finally {
+      setProfileLoaded(true);
     }
   }, []);
 
-useEffect(() => {
-  if (!uniqueKey) {
-    setIsLoading(false);
-    return;
-  }
+  useEffect(() => {
+    if (!uniqueKey) {
+      setIsLoading(false);
+      return;
+    }
 
-  const controller = new AbortController();
-  setIsLoading(true);
+    if (!isStoredKeyValid()) {
+      logout();
+      setIsLoading(false);
+      return;
+    }
 
-  getProfileDetails(controller.signal)
-    .then((data) => setProfile(data))
-    .catch((err) => {
-      if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
-      setProfile(null);
-    })
-    .finally(() => {
-      if (!controller.signal.aborted) setIsLoading(false);
-    });
+    scheduleExpiry();
 
-  return () => controller.abort();
-}, []);
+    const controller = new AbortController();
+    setIsLoading(true);
+
+    getProfileDetails(controller.signal)
+      .then((data) => setProfile(data))
+      .catch((err) => {
+        if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
+        setProfile(null);
+      })
+      .finally(() => {
+        setProfileLoaded(true);
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+      if (expiryTimer.current) clearTimeout(expiryTimer.current);
+    };
+  }, [uniqueKey]);
 
   const setSession = useCallback(
-    async (key: string) => {
-      setStoredUniqueKey(key);
+    async (key: string, validity?: string) => {
+      setStoredUniqueKey(key, validity);
       setUniqueKey(key);
+      scheduleExpiry();
       await refreshProfile();
     },
-    [refreshProfile]
+    [refreshProfile, scheduleExpiry]
   );
 
-  const logout = useCallback(() => {
-    clearStoredUniqueKey();
-    setUniqueKey(null);
-    setProfile(null);
-  }, []);
+const hasPermission = useCallback(
+  (viewId: string, permission: "R" | "W" | "D") => {
+    if (!profile) return false;
+    const view = profile.Views.find(
+      (v) => v.ViewId.toLowerCase() === viewId.toLowerCase()
+    );
+    return !!view?.Permission.includes(permission);
+  },
+  [profile]
+);
 
-  const hasPermission = useCallback(
-    (viewId: string, permission: "R" | "W") => {
-      if (!profile) return false;
-      const view = profile.Views.find(
-        (v) => v.ViewId.toLowerCase() === viewId.toLowerCase()
-      );
-      return !!view?.Permission.includes(permission);
-    },
-    [profile]
-  );
+const getPermissions = useCallback(
+  (viewId: string): string[] => {
+    const view = profile?.Views.find(
+      (v) => v.ViewId.toLowerCase() === viewId.toLowerCase()
+    );
+    return view?.Permission ?? [];
+  },
+  [profile]
+);
 
-  const value: AuthContextValue = {
-    isAuthenticated: !!uniqueKey,
-    isLoading,
-    profile,
-    setSession,
-    logout,
-    refreshProfile,
-    hasPermission,
-  };
+
+  const isAuthenticated =
+    !!uniqueKey && isStoredKeyValid() && (!profileLoaded || !!profile);
+
+const value: AuthContextValue = {
+  isAuthenticated,
+  isLoading,
+  profile,
+  setSession,
+  logout,
+  refreshProfile,
+  hasPermission,
+  getPermissions,
+};
 
   return (
     <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

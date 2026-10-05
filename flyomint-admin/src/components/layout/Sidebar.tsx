@@ -13,17 +13,23 @@ import {
   SlidersHorizontal,
   ChevronDown,
   PlaneTakeoff,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext"; 
 
 interface NavChild {
   label: string;
   to: string;
+  viewId: string; 
 }
 
 interface NavItem {
   label: string;
   icon: React.ElementType;
   to?: string;
+  viewId?: string; 
+  hideWhenViewAllowed?: string; 
   children?: NavChild[];
 }
 
@@ -39,9 +45,9 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
         label: "System Access",
         icon: ShieldCheck,
         children: [
-          { label: "Admins", to: "/admins" },
-          { label: "Roles", to: "/roles" },
-          { label: "Permissions", to: "/permissions" },
+          { label: "Admins", to: "/admins", viewId: "user" },
+          { label: "Roles", to: "/roles", viewId: "role" },
+          { label: "Permissions", to: "/permissions", viewId: "permission" },
         ],
       },
     ],
@@ -49,29 +55,29 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
   {
     heading: "Workspace",
     items: [
-      { label: "Content", icon: FileText, to: "/content" },
-      { label: "Locations", icon: MapPin, to: "/locations" },
-      { label: "Aviation", icon: Plane, to: "/aviation" },
-      { label: "Travelers", icon: UserRound, to: "/travelers" },
-      { label: "Bookings", icon: Briefcase, to: "/bookings" },
-      { label: "Configuration", icon: Settings, to: "/configuration" },
-      { label: "Advanced", icon: SlidersHorizontal, to: "/advanced" },
+      { label: "Content", icon: FileText, to: "/content", viewId: "content" },
+      { label: "Locations", icon: MapPin, to: "/locations", viewId: "locations" },
+      { label: "Aviation", icon: Plane, to: "/aviation", viewId: "aviation" },
+      { label: "Travelers", icon: UserRound, to: "/travelers", viewId: "travelers" },
+      { label: "Search Transaction", icon: Briefcase, to: "/bookings", viewId: "searchtxn" },
+{ label: "Confirm Booking", icon: CheckCircle2, to: "/confirm-bookings", viewId: "cnfbkg" },
+{ label: "Pending Booking", icon: Clock, to: "/pending-bookings", viewId: "pndbkg" },
+      { label: "Configuration", icon: Settings, to: "/configuration", viewId: "configuration" },
+      { label: "Advanced", icon: SlidersHorizontal, to: "/advanced", viewId: "advanced" },
     ],
   },
 ];
 
+const linkClass = (isActive: boolean) =>
+  `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+    isActive
+      ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)] font-medium"
+      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)]"
+  }`;
+
 function SidebarLink({ item }: { item: NavChild }) {
   return (
-    <NavLink
-      to={item.to}
-      className={({ isActive }) =>
-        `block rounded-md px-3 py-2 text-sm transition-colors ${
-          isActive
-            ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)] font-medium"
-            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)]"
-        }`
-      }
-    >
+    <NavLink to={item.to} className={({ isActive }) => linkClass(isActive)}>
       {item.label}
     </NavLink>
   );
@@ -83,16 +89,7 @@ function SidebarGroup({ item }: { item: NavItem }) {
 
   if (!item.children) {
     return (
-      <NavLink
-        to={item.to ?? "#"}
-        className={({ isActive }) =>
-          `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-            isActive
-              ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)] font-medium"
-              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)]"
-          }`
-        }
-      >
+      <NavLink to={item.to ?? "#"} className={({ isActive }) => linkClass(isActive)}>
         <Icon size={16} />
         {item.label}
       </NavLink>
@@ -109,10 +106,7 @@ function SidebarGroup({ item }: { item: NavItem }) {
           <Icon size={16} />
           {item.label}
         </span>
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="mt-1 ml-3 flex flex-col gap-0.5 border-l border-[var(--color-border)] pl-3">
@@ -126,6 +120,32 @@ function SidebarGroup({ item }: { item: NavItem }) {
 }
 
 export function Sidebar() {
+  const { hasPermission } = useAuth();
+
+  // An item is visible when it has no viewId (always on) or the API granted at least Read on that view.
+  const canSee = (viewId?: string) => !viewId || hasPermission(viewId, "R");
+
+  // Child views (Confirm / Pending) are reachable from their parent (Search Transaction),
+  // so they are hidden from the sidebar whenever the parent view is allowed.
+  const canShow = (item: NavItem) =>
+    canSee(item.viewId) &&
+    !(item.hideWhenViewAllowed && hasPermission(item.hideWhenViewAllowed, "R"));
+
+  // Filter items; groups survive only if at least one child is allowed.
+  const visible = (items: NavItem[]): NavItem[] =>
+    items
+      .map((item) =>
+        item.children
+          ? { ...item, children: item.children.filter((c) => canSee(c.viewId)) }
+          : item
+      )
+      .filter((item) => (item.children ? item.children.length > 0 : canShow(item)));
+
+  const application = visible(APPLICATION);
+  const sections = SECTIONS.map((s) => ({ ...s, items: visible(s.items) })).filter(
+    (s) => s.items.length > 0
+  );
+
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--color-border-soft)] bg-[var(--color-surface)] h-screen sticky top-0">
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-[var(--color-border-soft)]">
@@ -141,18 +161,20 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-6">
-        <div>
-          <p className="px-3 mb-2 text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-            Application
-          </p>
-          <div className="flex flex-col gap-0.5">
-            {APPLICATION.map((item) => (
-              <SidebarGroup key={item.label} item={item} />
-            ))}
+        {application.length > 0 && (
+          <div>
+            <p className="px-3 mb-2 text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+              Application
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {application.map((item) => (
+                <SidebarGroup key={item.label} item={item} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div key={section.heading}>
             <p className="px-3 mb-2 text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
               {section.heading}

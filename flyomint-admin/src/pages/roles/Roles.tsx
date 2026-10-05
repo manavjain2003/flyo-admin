@@ -138,10 +138,10 @@ async function loadData(signal?: AbortSignal) {
 
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-xs">
-          <Search
+          {/* <Search
             size={15}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-          />
+          /> */}
           <input
             className="input-base pl-9"
             placeholder="Search roles..."

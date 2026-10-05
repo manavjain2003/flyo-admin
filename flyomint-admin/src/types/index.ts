@@ -8,8 +8,8 @@ export interface GetLoginOtpRequest {
 }
 
 export interface GetLoginOtpResponse {
-  OTP: string; 
-  UserKey: string; 
+  OTP: string;
+  UserKey: string;
   ErrorCode: string | null;
   Message: string | null;
 }
@@ -17,12 +17,12 @@ export interface GetLoginOtpResponse {
 export interface LoginRequest {
   Mobile: string;
   UserKey: string;
-  OTP: string; 
+  OTP: string;
 }
 
 export interface LoginResponse {
-  UniqueKey: string; 
-  Validity: string; 
+  UniqueKey: string;
+  Validity: string;
   ErrorCode: string | null;
   Message: string | null;
 }
@@ -134,22 +134,22 @@ export interface BookingHistoryRequest {
   PageSize: number;
   StartDate: string;
   EndDate: string;
-  CurrentStatus: string; 
-  PaymentStatus: string; 
+  CurrentStatus: string;
+  PaymentStatus: string;
 }
 
 export interface BookingSummary {
   Id: string;
   Reference: string;
-  Status: string; 
+  Status: string;
   PaymentStatus?: string;
-  TripType: string; 
+  TripType: string;
   Source: string;
   Destination: string;
   Provider: string;
   Amount: number;
   PNR: string;
-  BookedAt: string; 
+  BookedAt: string;
 }
 
 export interface BookingHistoryResponse {
@@ -240,7 +240,6 @@ export interface BookingDetail {
   Message: string | null;
 }
 
-
 export interface TransactionLeg {
   TransactionId: number;
   BookingId: string;
@@ -277,8 +276,6 @@ export interface GroupedBooking {
   BookingDate: string;
   Legs: TransactionLeg[];
 }
-
-// Add these interfaces to types.ts
 
 export interface BookingInfoPassenger {
   PassengerId: number;
@@ -321,6 +318,15 @@ export interface BookingInfoFareDetails {
   InfantTotalFare: number;
 }
 
+export interface BookingInfoSSR {
+  SID: number;
+  PassengerId: number;
+  SSRCode: string;
+  SSRDesc: string;
+  SSRType: string;
+  SSRPrice: number;
+}
+
 export interface BookingInfoJourney {
   Source: string;
   Destination: string;
@@ -333,8 +339,9 @@ export interface BookingInfoJourney {
   BookingStatus: string;
   CurrentStatus: string;
   ProviderCode: string;
-  ProviderRefId: string;
-  SSRDetails: unknown | null;
+  ProviderRefId?: string;
+  OrderDetails?: string;
+  SSRDetails: BookingInfoSSR[] | null;
 }
 
 export interface SearchTransactionBookingInfo {
@@ -367,3 +374,60 @@ export interface SearchTransactionPaymentInfo {
   AmountPaid: number;
 }
 
+export type StatsPeriod = "3m" | "12m" | "lifetime";
+
+export interface CvsBreakdownItem {
+  Label: string;
+  Value: string;
+  Weightage: number;
+}
+
+export interface ServiceMetricValue {
+  Value: number | string;
+  Percentile: string;
+}
+
+export interface ServiceMetricRow {
+  Label: string;
+  Flights: ServiceMetricValue;
+  Hotels: ServiceMetricValue;
+}
+
+export interface CustomerProfileSummary {
+  UserId: string;
+  Name: string;
+  Status: string;
+  Since: string;
+  LastSeen: string;
+  Mobile: string;
+  Email: string;
+}
+
+export interface CustomerStatsResponse {
+  Profile: CustomerProfileSummary;
+  CustomerValueScore: number;
+  CvsBreakdown: CvsBreakdownItem[];
+  TotalGMV: number;
+  TotalGMVPercentile: string;
+  NPSScore: number;
+  NPSLabel: string;
+  ServicesOverview: {
+    Period: StatsPeriod;
+    Rows: ServiceMetricRow[];
+  };
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+
+export interface BookingStatusRequest {
+  OrderDetail: string; 
+  ReferenceNo: string;
+}
+
+export interface BookingStatusResponse {
+  Status?: string;
+  BookingStatus?: string;
+  ErrorCode?: string | null;
+  Message?: string | null;
+}

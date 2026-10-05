@@ -73,7 +73,7 @@ export default function Login() {
         setError(res.Message || "Invalid OTP. Please try again.");
         return;
       }
-      await setSession(res.UniqueKey);
+      await setSession(res.UniqueKey, res.Validity);
       navigate("/", { replace: true });
     } catch {
       setError("Login failed. Please try again.");

@@ -6,6 +6,7 @@ import type {
   BookingSummary,
   BookingHistoryRequest,
   BookingHistoryResponse,
+  CustomerStatsResponse,
   ErrorPostRequest,
   GetLoginOtpResponse,
   LoginResponse,
@@ -15,6 +16,7 @@ import type {
   RoleUpdateRequest,
   SearchTransactionRequest,
   SearchTransactionResponse,
+  StatsPeriod,
   TransactionLeg,
   GroupedBooking,
   SimpleMessageResponse,
@@ -23,6 +25,8 @@ import type {
   UserUpdateRequest,
   ViewsGetResponse,
   ViewsUpdatePermissionRequest,
+  BookingStatusResponse,
+  BookingStatusRequest,
 } from "../types";
 
 function extractErrorMessage(error: unknown): string {
@@ -83,7 +87,7 @@ export async function getProfileDetails(signal?: AbortSignal): Promise<ProfileRe
     );
     return data.ServiceResponse;
   } catch (error) {
-    if (signal?.aborted) throw error; 
+    if (signal?.aborted) throw error;
     handleApiError("/Admin/GetProfileDetails", error);
   }
 }
@@ -96,11 +100,10 @@ export async function getRoles(signal?: AbortSignal): Promise<RoleGetResponse> {
     );
     return data.ServiceResponse;
   } catch (error) {
-    if (signal?.aborted) throw error; 
+    if (signal?.aborted) throw error;
     handleApiError("/Role/Get", error);
   }
 }
-
 
 export async function addRole(payload: RoleAddRequest): Promise<SimpleMessageResponse> {
   try {
@@ -134,7 +137,7 @@ export async function getUsers(signal?: AbortSignal): Promise<UserGetResponse> {
     );
     return data.ServiceResponse;
   } catch (error) {
-    if (signal?.aborted) throw error; 
+    if (signal?.aborted) throw error;
     handleApiError("/User/Get", error);
   }
 }
@@ -172,7 +175,7 @@ export async function getViews(
     const { data } = await api.get<ApiEnvelope<ViewsGetResponse>>(url, { signal });
     return data.ServiceResponse;
   } catch (error) {
-    if (signal?.aborted) throw error;  
+    if (signal?.aborted) throw error;
     handleApiError("/Views/Get", error);
   }
 }
@@ -227,7 +230,7 @@ export async function getBookingHistory(
         Source: source,
         Destination: destination,
         Provider: pnr,
-        Amount: 0,                         // not in this endpoint
+        Amount: 0,
         PNR: pnr,
         BookedAt: formatDateShort(r.CreatedDate ?? ""),
       };
@@ -245,10 +248,9 @@ export async function getBookingHistory(
   }
 }
 
-
 function formatDateShort(raw: string): string {
   if (!raw) return "";
-  const d = new Date(raw);     
+  const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -273,7 +275,7 @@ function mapStatus(code: string): string {
     "Booking not initiated": "Not Initiated",
     "Payment Initiated": "Payment Initiated",
     "Payment Collected": "Confirmed",
-    "payment not initiated": "Not Initiated",  
+    "payment not initiated": "Not Initiated",
     "Peyment not initiated": "Not Initiated",
   };
   return map[code] ?? code ?? "Unknown";
@@ -319,4 +321,144 @@ export function reportError(payload: ErrorPostRequest): void {
   }
 }
 
+export async function getCustomerStats(
+  userKey: string,
+  period: StatsPeriod,
+  signal?: AbortSignal
+): Promise<CustomerStatsResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<CustomerStatsResponse>>(
+      `/Customer/GetStats/${encodeURIComponent(userKey)}`,
+      { params: { period }, signal }
+    );
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/Customer/GetStats", error);
+  }
+}
 
+
+
+export async function checkBookingStatus(
+  payload: BookingStatusRequest
+): Promise<BookingStatusResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<BookingStatusResponse>>(
+      "/Utility/CheckBookingStatus",
+      payload
+    );
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Utility/CheckBookingStatus", error);
+  }
+}
+
+export async function updateBookingStatus(
+  payload: BookingStatusRequest
+): Promise<BookingStatusResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<BookingStatusResponse>>(
+      "/Utility/UpdateBookingStatus",
+      payload
+    );
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Utility/UpdateBookingStatus", error);
+  }
+}
+
+
+
+
+export type DocumentFormat = "P" | "H"; // P = PDF, H = HTML
+ 
+export interface DocumentRequest {
+  TransactionID: string;
+  PNR: string;
+  ReferenceNo: string;
+  Type: DocumentFormat;
+}
+ 
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+ 
+function base64ToBlob(b64: string, mime: string): Blob {
+  const bin = atob(b64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+ 
+function collectStrings(value: unknown, out: string[] = []): string[] {
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) value.forEach((v) => collectStrings(v, out));
+  else if (value && typeof value === "object")
+    Object.values(value as Record<string, unknown>).forEach((v) => collectStrings(v, out));
+  return out;
+}
+ 
+async function downloadDocument(path: string, payload: DocumentRequest, baseName: string): Promise<void> {
+  try {
+    const mime = payload.Type === "P" ? "application/pdf" : "text/html";
+    const ext = payload.Type === "P" ? "pdf" : "html";
+    const filename = `${baseName}_${payload.ReferenceNo || payload.TransactionID}.${ext}`;
+ 
+    const res = await api.post(path, payload, { responseType: "blob" });
+    const blob: Blob = res.data;
+    const contentType = String(res.headers?.["content-type"] ?? blob.type ?? "").toLowerCase();
+ 
+    // 1) Server returned the file itself
+    if (!contentType.includes("json")) {
+      saveBlob(blob.type ? blob : new Blob([blob], { type: mime }), filename);
+      return;
+    }
+ 
+    const json = JSON.parse(await blob.text());
+    const sr = json?.ServiceResponse ?? json;
+    if (sr?.ErrorCode) throw new Error(sr.Message || "Document request failed.");
+ 
+    const strings = collectStrings(sr).map((s) => s.trim());
+ 
+    const dataUri = strings.find((s) => /^data:[^;]+;base64,/i.test(s));
+    if (dataUri) {
+      const [head, body] = dataUri.split(",");
+      saveBlob(base64ToBlob(body, head.slice(5, head.indexOf(";"))), filename);
+      return;
+    }
+    const base64 = strings.find((s) => s.length > 200 && /^[A-Za-z0-9+/=\s]+$/.test(s));
+    if (base64) {
+      saveBlob(base64ToBlob(base64, mime), filename);
+      return;
+    }
+    const html = strings.find((s) => /^<(!doctype|html)/i.test(s));
+    if (html) {
+      saveBlob(new Blob([html], { type: "text/html" }), filename);
+      return;
+    }
+    const link = strings.find((s) => /^https?:\/\//i.test(s));
+    if (link) {
+      window.open(link, "_blank", "noopener");
+      return;
+    }
+    throw new Error(sr?.Message || "No document content found in the response.");
+  } catch (error) {
+    handleApiError(path, error);
+  }
+}
+ 
+export function downloadETicket(payload: DocumentRequest): Promise<void> {
+  return downloadDocument("/Utility/ETicketCopy", payload, "ETicket");
+}
+ 
+export function downloadInvoice(payload: DocumentRequest): Promise<void> {
+  return downloadDocument("/Utility/AirlineInvoice", payload, "Invoice");
+}
