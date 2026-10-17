@@ -13,6 +13,7 @@ import type {
 import { Badge, SectionCard, fmt, fmtCurrency } from "./shared";
 import DocumentsCard, { type DocumentParams } from "./DocumentsCard";
 import EditPendingBooking from "./EditPendingBooking";
+import { useAuth } from "../context/AuthContext";
 
 interface Props {
   info: SearchTransactionBookingInfo;
@@ -163,6 +164,8 @@ export default function BookingDetailsTab({
   documentParams,
   onUpdated,
 }: Props) {
+  const { hasPermission } = useAuth();
+  const canWrite = hasPermission("searchtxn", "W");
   const journeys = [info.OnwardJourneyDetail, info.ReturnJourneyDetail].filter(
     (j): j is BookingInfoJourney => !!j
   );
@@ -247,7 +250,7 @@ const contactPhone = info.CustomerMobile;
                 <Item label="Trip Type" value={tripTypeLabel(info.SearchType)} />
               </div>
 
-              {!!j.IsEditAllowed && (info.SearchType === "RT" || idx === 0) && (
+              {canWrite && !!j.IsEditAllowed && (info.SearchType === "RT" || idx === 0) && (
                 <EditPendingBooking
                   bookingId={info.BookingId}
                   searchType={info.SearchType}
