@@ -552,3 +552,6 @@ export interface ConfigGetResponse {
   ErrorCode: string | null;
   Message: string | null;
 }
+
+export type ConfigAddRequest = Omit<ConfigItem, "ConfigId">;
+export type ConfigUpdateRequest = ConfigItem;

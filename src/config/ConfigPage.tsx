@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Pencil, Plus } from "lucide-react";
 import type {
   ConfigItem,
   FareTypeConfig,
@@ -6,6 +7,8 @@ import type {
   ProductClassDisplayDetail,
 } from "../types";
 import { getConfigs } from "../api/endpoints";
+import { useAuth } from "../context/AuthContext";
+import ConfigFormModal from "./ConfigFormModal";
 
 const SECTOR_LABEL: Record<string, string> = {
   D: "Domestic",
@@ -204,7 +207,7 @@ function DetailsCell({ details }: { details?: ProductClassDisplayDetail[] | null
 const fieldClass =
   "rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm outline-none focus:border-[var(--color-text-secondary)]";
 
-const HEADERS = [
+const BASE_HEADERS = [
   "Config Id",
   "Channel",
   "Airline",
@@ -221,6 +224,11 @@ const HEADERS = [
 ];
 
 export default function ConfigPage() {
+  const { hasPermission } = useAuth();
+  const canWrite = hasPermission("marginconfig", "W");
+  const HEADERS = canWrite ? [...BASE_HEADERS, "Actions"] : BASE_HEADERS;
+
+  const [formTarget, setFormTarget] = useState<ConfigItem | "new" | null>(null);
   const [items, setItems] = useState<ConfigItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -287,6 +295,11 @@ export default function ConfigPage() {
           >
             Refresh
           </button>
+          {canWrite && (
+            <button type="button" className="btn-primary" onClick={() => setFormTarget("new")}>
+              <Plus size={16} /> Add Configuration
+            </button>
+          )}
         </div>
       </div>
 
@@ -363,11 +376,35 @@ export default function ConfigPage() {
                   <td className="py-4 px-3">
                     <DetailsCell details={c.ProductClassDisplayDetails} />
                   </td>
+                  {canWrite && (
+                    <td className="py-4 px-3">
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        title="Edit configuration"
+                        onClick={() => setFormTarget(c)}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
+
+      {canWrite && formTarget && (
+        <ConfigFormModal
+          key={formTarget === "new" ? "new" : formTarget.ConfigId}
+          item={formTarget === "new" ? null : formTarget}
+          onClose={() => setFormTarget(null)}
+          onSaved={() => {
+            setFormTarget(null);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

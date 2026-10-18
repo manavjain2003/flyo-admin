@@ -17,7 +17,6 @@ interface Props {
 type DocKind = "eticket" | "invoice";
 
 export default function DocumentsCard({ invoiceNumber, params }: Props) {
-  // Only one document can be selected at a time.
   const [selected, setSelected] = useState<DocKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

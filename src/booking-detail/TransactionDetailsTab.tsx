@@ -9,12 +9,8 @@ import { Badge, SectionCard, fmt, fmtCurrency } from "./shared";
 interface Props {
   legs?: TransactionLeg[];
   payment: SearchTransactionPaymentInfo | null;
-  billing?: SearchTransactionBillingInfo | null; // kept so the parent call doesn't break; billing is shown in Booking Details
+  billing?: SearchTransactionBillingInfo | null; 
 }
-
-/* ---------- building blocks ---------- */
-
-// Label above value, with a thin underline so empty slots still look intentional.
 function Cell({ label, value, mono }: { label: string; value?: ReactNode; mono?: boolean }) {
   return (
     <div className="min-w-0 pb-2.5 border-b border-[var(--color-border-soft)]">
@@ -35,7 +31,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-// One transaction / refund block: header strip, timestamps, then grouped details
 function Block({
   idLabel,
   idValue,
@@ -76,7 +71,6 @@ function Block({
   );
 }
 
-// Action buttons from the reference UI; no handlers yet, so they are disabled
 function SectionActions({ labels }: { labels: string[] }) {
   return (
     <div className="flex items-center gap-2 mb-5">
@@ -94,12 +88,10 @@ function SectionActions({ labels }: { labels: string[] }) {
   );
 }
 
-/* ---------- main ---------- */
 
 export default function TransactionDetailsTab({ payment }: Props) {
   return (
     <div className="space-y-6">
-      {/* ================= Transaction Info ================= */}
       <SectionCard title="Transaction Info">
         <SectionActions labels={["Unmask PII", "Sync Payment"]} />
 
@@ -131,7 +123,6 @@ export default function TransactionDetailsTab({ payment }: Props) {
         </Block>
       </SectionCard>
 
-      {/* ================= Refund Info ================= */}
       <SectionCard title="Refund Info">
         <SectionActions labels={["Unmask PII", "Sync Refund"]} />
 

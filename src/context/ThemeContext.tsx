@@ -10,7 +10,6 @@ import {
 
 export type Theme = "light" | "dark";
 
-// Keep in sync with the inline script in index.html.
 const STORAGE_KEY = "flyomint-theme";
 
 interface ThemeContextValue {
@@ -26,7 +25,7 @@ function readStoredTheme(): Theme | null {
     const v = localStorage.getItem(STORAGE_KEY);
     return v === "light" || v === "dark" ? v : null;
   } catch {
-    return null; // storage blocked (private mode, etc.)
+    return null; 
   }
 }
 
@@ -37,8 +36,6 @@ function systemTheme(): Theme {
 }
 
 function getInitialTheme(): Theme {
-  // index.html already resolved the theme before first paint; trust it so
-  // React state and the DOM never disagree.
   const fromDom = document.documentElement.getAttribute("data-theme");
   if (fromDom === "light" || fromDom === "dark") return fromDom;
   return readStoredTheme() ?? systemTheme();
@@ -47,18 +44,16 @@ function getInitialTheme(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
-  // Apply to <html> whenever it changes.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Explicit choice: remember it.
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      /* ignore – theme still applies for this session */
+      /* ignore – */
     }
   }, []);
 
@@ -66,7 +61,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
-  // Until the user picks a theme themselves, follow the OS setting live.
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-color-scheme: light)");
     if (!mq) return;
@@ -77,7 +71,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Keep multiple open tabs in sync.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY) return;

@@ -122,16 +122,12 @@ function SidebarGroup({ item }: { item: NavItem }) {
 export function Sidebar() {
   const { hasPermission } = useAuth();
 
-  // An item is visible when it has no viewId (always on) or the API granted at least Read on that view.
   const canSee = (viewId?: string) => !viewId || hasPermission(viewId, "R");
 
-  // Child views (Confirm / Pending) are reachable from their parent (Search Transaction),
-  // so they are hidden from the sidebar whenever the parent view is allowed.
   const canShow = (item: NavItem) =>
     canSee(item.viewId) &&
     !(item.hideWhenViewAllowed && hasPermission(item.hideWhenViewAllowed, "R"));
 
-  // Filter items; groups survive only if at least one child is allowed.
   const visible = (items: NavItem[]): NavItem[] =>
     items
       .map((item) =>

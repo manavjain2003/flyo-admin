@@ -15,6 +15,7 @@ import Permissions from "./pages/permissions/Permissions";
 import Bookings from "./pages/bookings/Bookings";
 import BookingDetail from "./booking-detail/BookingDetail";
 import ComingSoon from "./pages/misc/ComingSoon";
+import ConfigPage from "./config/ConfigPage";
 import NotFound from "./pages/misc/NotFound";
 import ConfirmedBookings from "./pages/bookings/ConfirmedBookings";
 import PendingBookings from "./pages/bookings/PendingBookings";
@@ -48,7 +49,7 @@ export default function App() {
                 <Route path="/travelers" element={<ComingSoon title="Travelers" />} />
                 <Route path="/bookings" element={<RequirePermission viewId="searchtxn"><Bookings /></RequirePermission>} />
                 <Route path="/bookings/:reference" element={<RequirePermission viewId="searchtxn"><BookingDetail /></RequirePermission>} />
-                <Route path="/configuration" element={<ComingSoon title="Configuration" />} />
+                <Route path="/configuration" element={<RequirePermission viewId="marginconfig"><ConfigPage /></RequirePermission>} />
                 <Route path="/advanced" element={<ComingSoon title="Advanced" />} />
               </Route>
 

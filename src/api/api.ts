@@ -7,7 +7,7 @@ import axios, {
 export const API_BASE_URL = "https://b2cadminapi.travelsuperhub.com";
 
 export const UNIQUE_KEY_STORAGE_KEY = "flyomint_unique_key";
-export const KEY_VALIDITY_STORAGE_KEY = "flyomint_key_validity"; // ISO string
+export const KEY_VALIDITY_STORAGE_KEY = "flyomint_key_validity"; 
 
 
 export function getStoredUniqueKey(): string | null {
@@ -82,7 +82,7 @@ api.interceptors.response.use(
       const serverErrorCode = body?.ServiceResponse?.ErrorCode;
 
       const looksLikeExpiredOrInvalidToken =
-        !serverErrorCode || // no structured code -> assume it's auth-related, same as before
+        !serverErrorCode || 
         serverErrorCode === "INVALID_TOKEN" ||
         serverErrorCode === "TOKEN_EXPIRED";
 

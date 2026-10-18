@@ -1,6 +1,7 @@
 import axios from "axios";
 import api from "./api";
 import { encryptAES } from "../utils/crypto";
+import { parseMasterList, type MasterOption } from "./masterParse";
 import type {
   ApiEnvelope,
   BookingSummary,
@@ -29,6 +30,8 @@ import type {
   BookingStatusRequest,
   UpdatePendingBookingRequest,
   ConfigGetResponse,
+  ConfigAddRequest,
+  ConfigUpdateRequest,
 } from "../types";
 
 function extractErrorMessage(error: unknown): string {
@@ -418,7 +421,6 @@ async function downloadDocument(path: string, payload: DocumentRequest, baseName
     const blob: Blob = res.data;
     const contentType = String(res.headers?.["content-type"] ?? blob.type ?? "").toLowerCase();
  
-    // 1) Server returned the file itself
     if (!contentType.includes("json")) {
       saveBlob(blob.type ? blob : new Blob([blob], { type: mime }), filename);
       return;
@@ -494,3 +496,47 @@ export async function getConfigs(signal?: AbortSignal): Promise<ConfigGetRespons
     handleApiError("/Config/Get", error);
   }
 }
+
+export async function addConfig(payload: ConfigAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>(
+      "/Config/Add",
+      payload
+    );
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Config/Add", error);
+  }
+}
+
+export async function updateConfig(payload: ConfigUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>(
+      "/Config/Update",
+      payload
+    );
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Config/Update", error);
+  }
+}
+
+async function getMaster(path: string, signal?: AbortSignal): Promise<MasterOption[]> {
+  try {
+    const { data } = await api.get<ApiEnvelope<unknown>>(path, { signal });
+    const sr = data.ServiceResponse as { ErrorCode?: string | null; Message?: string | null } | undefined;
+    const list = parseMasterList(sr);
+    if (sr?.ErrorCode && list.length === 0) throw new Error(sr.Message || "Could not load list.");
+    return list;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError(path, error);
+  }
+}
+
+export const getAirlines = (signal?: AbortSignal) => getMaster("/Master/Get/Airline/", signal);
+export const getAirports = (signal?: AbortSignal) => getMaster("/Master/Get/Airport", signal);
+export const getFareDisplayModes = (signal?: AbortSignal) =>
+  getMaster("/Master/Get/FareDisplayMode", signal);
+export const getProductClasses = (airlineCode: string, signal?: AbortSignal) =>
+  getMaster(`/Master/Get/PRODUCTCLASS/${encodeURIComponent(airlineCode)}`, signal);

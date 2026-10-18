@@ -31,7 +31,6 @@ const SIMPLE_SEARCH_FIELDS: { value: SearchFieldKey; label: string }[] = [
   { value: "PNR", label: "PNR" },
 ];
 
-// UI search field -> SearchTransaction API SearchType
 const SEARCH_TYPE_BY_FIELD: Record<SearchFieldKey, SearchType> = {
   Reference: "BID",
   Mobile: "MON",
@@ -68,14 +67,11 @@ function formatDateShort(raw: string): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// One SearchTransaction leg -> one table row (every transaction is listed;
-// a booking with two sectors appears as two rows sharing the same Booking ID)
 function groupToSummaries(g: GroupedBooking): BookingSummary[] {
   return g.Legs.map((leg, i) => {
     const parts = (leg.Sector ?? "").split("/").filter(Boolean);
     const pnr = leg.CRSPNR || leg.AirlinePNR || "";
     return {
-      // TransactionId repeats across legs of one booking, so add the index for a unique key
       Id: `${leg.TransactionId}-${leg.OnwardDate}-${i}`,
       Reference: leg.BookingId || g.BookingId,
       Status: leg.CurrentStatus || leg.BookingStatus || "",
@@ -125,8 +121,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const canRead = hasPermission(viewId, "R");
   const canWrite = hasPermission(viewId, "W");
 
-  // Main Bookings page: search card -> SearchTransaction API.
-  // Status-locked pages: date range + simple filter -> booking history API.
   const useSearchCard = !lockedStatus;
 
   const [bookings, setBookings] = useState<BookingSummary[]>([]);
@@ -138,7 +132,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const [searchField, setSearchField] = useState<SearchFieldKey>("Reference");
   const [searchValue, setSearchValue] = useState("");
 
-  // Snapshot of what was actually searched (taken when Search is clicked)
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedField, setAppliedField] = useState<SearchFieldKey>("Reference");
 
@@ -158,7 +151,7 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     if (!v) return;
     setPageNumber(1);
     setStartDate(v);
-    if (v > endDate) setEndDate(v); // keep the range valid
+    if (v > endDate) setEndDate(v); 
   }
 
   function handleEndDateChange(v: string) {
@@ -196,7 +189,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     setMode((m) => (m === "search" ? "none" : m));
   }
 
-  // ── Booking history API (history panel + status-locked pages) ──────────────
   async function loadHistory(signal?: AbortSignal) {
     setLoading(true);
     setError(null);
@@ -224,7 +216,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     }
   }
 
-  // ── SearchTransaction API (main Bookings page search) ──────────────────────
   async function loadSearch(signal?: AbortSignal) {
     setLoading(true);
     setError(null);
@@ -236,8 +227,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
       );
       if (signal?.aborted) return;
 
-      // Judge success by whether data came back, not by ErrorCode: the API can
-      // return populated Transactions together with a non-empty ErrorCode.
       const legs = res?.Transactions ?? [];
       const info = res?.BookingInfo ?? null;
 
@@ -248,7 +237,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         return;
       }
 
-      // Some searches may return only BookingInfo (no Transactions) – build one row from it
       const rows =
         legs.length > 0
           ? groupTransactionsByBooking(legs).flatMap(groupToSummaries)
@@ -284,7 +272,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     }
   }
 
-  // History / locked-status pages (server-side paging + filters)
   useEffect(() => {
     if (effectiveMode !== "history") return;
     const controller = new AbortController();
@@ -292,7 +279,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     return () => controller.abort();
   }, [effectiveMode, pageNumber, pageSize, status, paymentStatus, lockedStatus, startDate, endDate]);
 
-  // Search (re-runs only when a new search is applied; paging is client-side)
   useEffect(() => {
     if (!useSearchCard) return;
     if (mode === "none") {
@@ -309,7 +295,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     return () => controller.abort();
   }, [mode, appliedSearch, appliedField]);
 
-  // Only the simple (status-locked) pages filter the loaded rows as you type
   const activeQuery = useSearchCard ? "" : searchValue.trim().toLowerCase();
 
   const filtered = useMemo(() => {
@@ -324,7 +309,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const showActions = canRead || canWrite;
 
-  // Search results come back in one go, so they're paged here; history is paged by the API
   const rows =
     effectiveMode === "search"
       ? filtered.slice((pageNumber - 1) * pageSize, pageNumber * pageSize)
@@ -398,7 +382,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
 
       {useSearchCard ? (
         <>
-          {/* ── Search card (main Bookings page only) ─────────────── */}
           <div className="card-base p-5 mb-4">
             <div className="flex items-stretch gap-3 flex-wrap">
               <div className="relative w-full sm:w-[264px] shrink-0">
@@ -452,7 +435,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
               </button>
             </div>
 
-            {/* Quick search chips */}
             <div className="flex items-center gap-2 mt-4 flex-wrap text-sm">
               <span className="text-[var(--color-text-muted)]">Quick search:</span>
               {SEARCH_FIELDS.map((f) => {
@@ -474,7 +456,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
               })}
             </div>
 
-            {/* History = date range + status/payment filters (booking history API) */}
             {showHistory && (
               <div className="mt-5 pt-5 border-t border-[var(--color-border-soft)] flex items-end gap-3 flex-wrap">
                 <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
@@ -614,7 +595,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
               />
             </div>
 
-            {/* Status dropdown stays hidden: these pages are locked to a status */}
 
             <div className="w-48 shrink-0">
               <select
@@ -642,7 +622,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         </>
       )}
 
-      {/* ── Table (same on all pages, original BookingSummary fields) ── */}
       <div className="card-base overflow-hidden">
         {loading ? (
           <LoadingState />

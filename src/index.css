@@ -30,11 +30,9 @@
   --color-danger-soft: #ef44441a;
   --color-warning: #f59e0b;
 
-  /* Overlays (modal / drawer backdrops) */
   --color-overlay: rgb(0 0 0 / 0.6);
   --color-overlay-soft: rgb(0 0 0 / 0.4);
 
-  /* Dashboard (slate palette used by the dashboard cards + charts) */
   --dash-card: #1e293b;
   --dash-card-2: #162032;
   --dash-border: #1e3a5a;
@@ -51,7 +49,6 @@
   --dash-neg: #f43f5e;
   --dash-indigo-text: #818cf8;
 
-  /* Dashboard accents (chart series + stat-card icons) */
   --acc-indigo: #6366f1;
   --acc-indigo-2: #818cf8;
   --acc-sky: #38bdf8;
@@ -62,7 +59,6 @@
   --acc-mint: #34d399;
 }
 
-/* ---------- LIGHT ---------- */
 :root[data-theme="light"] {
   color-scheme: light;
 

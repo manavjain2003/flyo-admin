@@ -7,9 +7,10 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  size?: "md" | "xl";
 }
 
-export function Modal({ title, isOpen, onClose, children, footer }: ModalProps) {
+export function Modal({ title, isOpen, onClose, children, footer, size = "md" }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -18,7 +19,7 @@ export function Modal({ title, isOpen, onClose, children, footer }: ModalProps) 
         className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg card-base shadow-2xl">
+      <div className={`relative w-full card-base shadow-2xl ${size === "xl" ? "max-w-4xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border-soft)]">
           <h3 className="text-base font-semibold">{title}</h3>
           <button onClick={onClose} className="btn-icon">
