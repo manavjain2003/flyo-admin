@@ -348,9 +348,9 @@ export default function ConfigPage() {
             {!loading &&
               filtered.map((c) => (
                 <tr
-                  key={c.ConfigId}
-                  className="border-b border-[var(--color-border-soft)] last:border-0 align-top"
-                >
+  key={c.ConfigId}
+  className="border-b border-[var(--color-border-soft)] last:border-0 align-top hover:bg-[color-mix(in_srgb,var(--acc-orange)_12%,transparent)] transition-colors"
+>
                   <td className="py-4 px-3 font-mono">{c.ConfigId}</td>
                   <td className="py-4 px-3">{scopeLabel(c.ChannelCode)}</td>
                   <td className="py-4 px-3 font-mono">{scopeLabel(c.AirlineCode)}</td>
