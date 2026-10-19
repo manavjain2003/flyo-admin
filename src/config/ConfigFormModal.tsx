@@ -23,7 +23,7 @@ import {
   type Draft,
   type Errors,
 } from "./configValidation";
-import { useFareModes, useProductClasses, type MasterOption } from "./useMaster";
+import { useAirlines, useAirports, useFareModes, useProductClasses, type MasterOption } from "./useMaster";
 
 const newHandBag = (): HandBagConfig => ({
   Display_HandBag: true,
@@ -344,7 +344,6 @@ function Section({
   );
 }
 
-const ANY_ONLY = [{ value: WILDCARD, label: WILDCARD }];
 
 const grid = "grid grid-cols-1 sm:grid-cols-2 gap-4";
 const grid3 = "grid grid-cols-1 sm:grid-cols-3 gap-4";
@@ -539,6 +538,8 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
   const [showErrors, setShowErrors] = useState(false);
 
   const fareModes = useFareModes();
+  const airlines = useAirlines();
+  const airports = useAirports();
 
   const airlineCode = draft.AirlineCode.trim().toUpperCase();
   const activeAirline = useMemo(
@@ -584,12 +585,12 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
   const lookups = useMemo(
     () =>
       lookupsFor(item, {
-        airlines: null,
-        airports: null,
+        airlines: airlines.options?.map((o) => o.value.toUpperCase()) ?? null,
+        airports: airports.options?.map((o) => o.value.toUpperCase()) ?? null,
         fareModes: fareModes.options?.map((o) => Number(o.value)).filter((n) => Number.isFinite(n)) ?? null,
         productClasses: productClasses.options?.map((o) => o.value) ?? null,
       }),
-    [item, fareModes.options, productClasses.options]
+    [item, airlines.options, airports.options, fareModes.options, productClasses.options]
   );
 
   const errors: Errors = useMemo(() => validateDraft(draft, lookups), [draft, lookups]);
@@ -694,7 +695,7 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
 
         <Section title="Applies to">
           <p className="text-xs text-[var(--color-text-muted)] -mt-2 mb-4">
-            Choose * to match everything for that field. Airline, source and destination are * for now.
+            Choose * to match everything for that field.
           </p>
           <div className={grid3}>
             <OptionSelect
@@ -709,8 +710,9 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
             <OptionSelect
               id="cfg-airline"
               label="Airline Code"
+              withAll
               value={draft.AirlineCode}
-              options={ANY_ONLY}
+              options={airlines.options ?? []}
               error={err("AirlineCode")}
               onChange={(v) => patch({ AirlineCode: v })}
             />
@@ -726,16 +728,18 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
             <OptionSelect
               id="cfg-source"
               label="Source"
+              withAll
               value={draft.Source}
-              options={ANY_ONLY}
+              options={airports.options ?? []}
               error={err("Source")}
               onChange={(v) => patch({ Source: v })}
             />
             <OptionSelect
               id="cfg-dest"
               label="Destination"
+              withAll
               value={draft.Destination}
-              options={ANY_ONLY}
+              options={airports.options ?? []}
               error={err("Destination")}
               onChange={(v) => patch({ Destination: v })}
             />
