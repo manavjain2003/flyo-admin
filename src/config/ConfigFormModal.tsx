@@ -309,7 +309,7 @@ function PrioritySelect({
       aria-invalid={error ? true : undefined}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="">{optional ? "None" : "Select priority"}</option>
+      <option value="">{optional ? "Select priority" : "Select priority"}</option>
       {options.map((o) => (
         <option key={o} value={o}>
           {o}
@@ -547,39 +547,35 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
     [airlineCode]
   );
 
-  const productClasses = useProductClasses(activeAirline);
+const productClasses = useProductClasses(activeAirline, draft.SectorType);
 
-  const lastAirline = useRef<string | null>(activeAirline);
-  useEffect(() => {
-    if (!activeAirline) return;
-    if (lastAirline.current && lastAirline.current !== activeAirline) {
-      setDraft((d) => ({
-        ...d,
-        Student_Config: d.Student_Config ? { ...d.Student_Config, ProductClass: [] } : null,
-        SrCitizen_Config: d.SrCitizen_Config ? { ...d.SrCitizen_Config, ProductClass: [] } : null,
-        Restricted_ProductClass_Display: [],
-        Restricted_ProductClass_Margin: [],
-        ProductClassDisplayDetails: d.ProductClassDisplayDetails.map((x) => ({
-          ...x,
-          ProductClass: [],
-          MarginProductClass: [],
-          MarginRestrictedProductClass: [],
-        })),
-      }));
-    }
-    lastAirline.current = activeAirline;
-  }, [activeAirline]);
+const lastAirline = useRef<string | null>(activeAirline);
+useEffect(() => {
+  if (lastAirline.current === activeAirline) return;
+  lastAirline.current = activeAirline;
+  setDraft((d) => ({
+    ...d,
+    Student_Config: d.Student_Config ? { ...d.Student_Config, ProductClass: [] } : null,
+    SrCitizen_Config: d.SrCitizen_Config ? { ...d.SrCitizen_Config, ProductClass: [] } : null,
+    Restricted_ProductClass_Display: [],
+    Restricted_ProductClass_Margin: [],
+    ProductClassDisplayDetails: d.ProductClassDisplayDetails.map((x) => ({
+      ...x,
+      ProductClass: [],
+      MarginProductClass: [],
+      MarginRestrictedProductClass: [],
+    })),
+  }));
+}, [activeAirline]);
 
   const master: MasterBundle = {
     fareModes: fareModes.options,
     productClasses: productClasses.options,
-    productClassHint: !activeAirline
-      ? ""
-      : productClasses.loading
-      ? "Loading this airline's product classes…"
-      : productClasses.failed
-      ? "Couldn't load this airline's product classes. Type codes instead."
-      : "No product classes found for this airline. Type codes instead.",
+productClassHint: productClasses.loading
+  ? "Loading product classes…"
+  : productClasses.failed
+  ? "Couldn't load product classes. Type codes instead."
+  : "No product classes found. Type codes instead.",
   };
 
   const lookups = useMemo(
@@ -661,7 +657,7 @@ export default function ConfigFormModal({ item, onClose, onSaved }: Props) {
       ? `Please fix ${errorCount} highlighted ${errorCount === 1 ? "field" : "fields"} before saving.`
       : null);
 
-  const resetKey = activeAirline ?? "";
+const resetKey = `${activeAirline ?? ""}|${draft.SectorType}`;
 
   return (
     <Modal

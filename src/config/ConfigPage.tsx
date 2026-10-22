@@ -144,14 +144,14 @@ function HoverCell({
 
 function ConfigCell({ cfg, title }: { cfg: HandBagConfig | FareTypeConfig | null | undefined; title: string }) {
   if (!cfg) return <span className="text-[var(--color-text-muted)]">—</span>;
-  const enabled = "Display_HandBag" in cfg ? cfg.Display_HandBag : cfg.Display_Fare;
+  // const enabled = "Display_HandBag" in cfg ? cfg.Display_HandBag : cfg.Display_Fare;
   return (
     <HoverCell
       title={title}
       trigger={
         <span className="inline-flex items-center gap-2 text-xs underline decoration-dotted underline-offset-4">
           {cfg.ProductName || title}
-          <Chip tone={enabled ? "yes" : "no"}>{enabled ? "On" : "Off"}</Chip>
+          {/* <Chip tone={enabled ? "yes" : "no"}>{enabled ? "On" : "Off"}</Chip> */}
         </span>
       }
     >

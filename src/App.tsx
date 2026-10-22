@@ -12,6 +12,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Admins from "./pages/admins/Admins";
 import Roles from "./pages/roles/Roles";
 import Permissions from "./pages/permissions/Permissions";
+import FareTypeMaster from "./pages/master/FareTypeMaster";
 import Bookings from "./pages/bookings/Bookings";
 import BookingDetail from "./booking-detail/BookingDetail";
 import ComingSoon from "./pages/misc/ComingSoon";
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="/bookings/:reference" element={<RequirePermission viewId="searchtxn"><BookingDetail /></RequirePermission>} />
                 <Route path="/configuration" element={<RequirePermission viewId="marginconfig"><ConfigPage /></RequirePermission>} />
                 <Route path="/advanced" element={<ComingSoon title="Advanced" />} />
+                <Route path="/master/fare-type" element={<RequirePermission viewId="faretypem"><FareTypeMaster /></RequirePermission>} />
               </Route>
 
               <Route path="/404" element={<NotFound />} />

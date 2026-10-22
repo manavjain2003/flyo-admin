@@ -32,6 +32,9 @@ import type {
   ConfigGetResponse,
   ConfigAddRequest,
   ConfigUpdateRequest,
+  FareTypeGetResponse,
+  FareTypeAddRequest,
+  FareTypeUpdateRequest,
 } from "../types";
 
 function extractErrorMessage(error: unknown): string {
@@ -538,5 +541,68 @@ export const getAirlines = (signal?: AbortSignal) => getMaster("/Master/Get/Airl
 export const getAirports = (signal?: AbortSignal) => getMaster("/Master/Get/Airport", signal);
 export const getFareDisplayModes = (signal?: AbortSignal) =>
   getMaster("/Master/Get/FareDisplayMode", signal);
-export const getProductClasses = (airlineCode: string, signal?: AbortSignal) =>
-  getMaster(`/Master/Get/PRODUCTCLASS/${encodeURIComponent(airlineCode)}`, signal);
+
+export interface ProductClassRow {
+  ProductCode: string;
+  SectorType: string;
+  AirlineCode: string;
+}
+
+// GET /Master/Get/PRODUCTCLASS/{AirlineCode}
+// Response shape: ServiceResponse.Result.ProductClassDetails[] -> only ProductCode is used in the UI.
+// airlineCode = null ("*" / nothing selected) -> call without a code; the UI de-duplicates the result.
+export async function getProductClassRows(
+  airlineCode: string | null,
+  signal?: AbortSignal
+): Promise<ProductClassRow[]> {
+  const path = airlineCode
+    ? `/Master/Get/PRODUCTCLASS/${encodeURIComponent(airlineCode)}`
+    : "/Master/Get/PRODUCTCLASS/";
+  try {
+    const { data } = await api.get<ApiEnvelope<any>>(path, { signal });
+    const sr = data.ServiceResponse;
+    const body = sr?.Result ?? sr;
+    const list: any[] = body?.ProductClassDetails ?? [];
+    if (body?.ErrorCode && list.length === 0) {
+      throw new Error(body.Message || "Could not load product classes.");
+    }
+    return list
+      .filter((r) => r?.ProductCode && r.IsActive !== false)
+      .map((r) => ({
+        ProductCode: String(r.ProductCode).trim(),
+        SectorType: String(r.SectorType ?? ""),
+        AirlineCode: String(r.AirlineCode ?? ""),
+      }));
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError(path, error);
+  }
+}
+
+export async function getFareTypes(signal?: AbortSignal): Promise<FareTypeGetResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<FareTypeGetResponse>>("/FareType/Get", { signal });
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/FareType/Get", error);
+  }
+}
+
+export async function addFareType(payload: FareTypeAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/FareType/Add", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/FareType/Add", error);
+  }
+}
+
+export async function updateFareType(payload: FareTypeUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/FareType/Update", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/FareType/Update", error);
+  }
+}

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getAirlines,
   getAirports,
   getFareDisplayModes,
-  getProductClasses,
+  getProductClassRows,
+  type ProductClassRow,
 } from "../api/endpoints";
 import type { MasterOption } from "../api/masterParse";
 
@@ -15,41 +16,74 @@ export interface MasterState {
   failed: boolean;
 }
 
-const cache = new Map<string, Promise<MasterOption[]>>();
-
-function useMaster(key: string | null, fetcher: () => Promise<MasterOption[]>): MasterState {
-  const [state, setState] = useState<MasterState>({ options: null, loading: !!key, failed: false });
-  const fetchRef = useRef(fetcher);
-  fetchRef.current = fetcher;
+function useMasterList(load: (signal: AbortSignal) => Promise<MasterOption[]>): MasterState {
+  const [options, setOptions] = useState<MasterOption[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!key) {
-      setState({ options: null, loading: false, failed: false });
-      return;
-    }
-    let cancelled = false;
-    setState({ options: null, loading: true, failed: false });
+    const ac = new AbortController();
+    setLoading(true);
+    setFailed(false);
+    load(ac.signal)
+      .then((list) => setOptions(list))
+      .catch(() => {
+        if (!ac.signal.aborted) setFailed(true);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false);
+      });
+    return () => ac.abort();
+  }, [load]);
 
-    let promise = cache.get(key);
-    if (!promise) {
-      promise = fetchRef.current();
-      cache.set(key, promise);
-      promise.catch(() => cache.delete(key)); 
-    }
-    promise
-      .then((options) => !cancelled && setState({ options, loading: false, failed: false }))
-      .catch(() => !cancelled && setState({ options: null, loading: false, failed: true }));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [key]);
-
-  return state;
+  return { options, loading, failed };
 }
 
-export const useAirlines = () => useMaster("airlines", () => getAirlines());
-export const useAirports = () => useMaster("airports", () => getAirports());
-export const useFareModes = () => useMaster("faredisplaymodes", () => getFareDisplayModes());
-export const useProductClasses = (airline: string | null) =>
-  useMaster(airline ? `productclass:${airline}` : null, () => getProductClasses(airline!));
+export const useAirlines = () => useMasterList(getAirlines);
+export const useAirports = () => useMasterList(getAirports);
+export const useFareModes = () => useMasterList(getFareDisplayModes);
+
+/**
+ * Product classes for the selected airline.
+ * - Refetches whenever `airlineCode` changes (null = "*" / no airline -> fetch without a code).
+ * - Only `ProductCode` is shown in the dropdown.
+ * - Filtered by `sectorType` (D / I) on the UI, then de-duplicated by ProductCode.
+ */
+export function useProductClasses(airlineCode: string | null, sectorType: string): MasterState {
+  const [rows, setRows] = useState<ProductClassRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    setLoading(true);
+    setFailed(false);
+    setRows(null);
+    getProductClassRows(airlineCode, ac.signal)
+      .then((r) => setRows(r))
+      .catch(() => {
+        if (!ac.signal.aborted) setFailed(true);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false);
+      });
+    return () => ac.abort();
+  }, [airlineCode]);
+
+  const options = useMemo<MasterOption[] | null>(() => {
+    if (!rows) return null;
+    const sector = sectorType?.trim().toUpperCase();
+    const seen = new Set<string>();
+    const out: MasterOption[] = [];
+    for (const r of rows) {
+      if (sector && r.SectorType && r.SectorType.toUpperCase() !== sector) continue;
+      const key = r.ProductCode.toUpperCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ value: r.ProductCode, label: r.ProductCode });
+    }
+    return out;
+  }, [rows, sectorType]);
+
+  return { options, loading, failed };
+}

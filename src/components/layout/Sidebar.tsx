@@ -15,6 +15,7 @@ import {
   PlaneTakeoff,
   CheckCircle2,
   Clock,
+  Database,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; 
 
@@ -64,6 +65,14 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
 { label: "Pending Booking", icon: Clock, to: "/pending-bookings", viewId: "pndbkg" },
       { label: "Margin Configuration", icon: Settings, to: "/configuration", viewId: "marginconfig" },
       { label: "Advanced", icon: SlidersHorizontal, to: "/advanced", viewId: "advanced" },
+      {
+        label: "Master",
+        icon: Database,
+        children: [
+          { label: "FareType Master", to: "/master/fare-type", viewId: "faretypem" },
+          // Add more sub-menus here; each shows only if the profile has "R" for its viewId
+        ],
+      },
     ],
   },
 ];

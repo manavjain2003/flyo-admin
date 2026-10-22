@@ -555,3 +555,26 @@ export interface ConfigGetResponse {
 
 export type ConfigAddRequest = Omit<ConfigItem, "ConfigId">;
 export type ConfigUpdateRequest = ConfigItem;
+
+export interface FareTypeDetail {
+  ProductId: number;
+  ProductCode: string;
+  AirlineCode: string;
+  AirlineName?: string;
+  ProviderCode: string;
+  SectorType: string;
+  CabinCode: string;
+  IsActive: boolean;
+}
+
+export interface FareTypeGetResponse {
+  ProductClassDetails: FareTypeDetail[];
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export type FareTypeAddRequest = Pick<
+  FareTypeDetail,
+  "ProductCode" | "AirlineCode" | "ProviderCode" | "SectorType" | "CabinCode"
+>;
+export type FareTypeUpdateRequest = FareTypeAddRequest & Pick<FareTypeDetail, "ProductId" | "IsActive">;
