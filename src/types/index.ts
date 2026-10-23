@@ -578,3 +578,95 @@ export type FareTypeAddRequest = Pick<
   "ProductCode" | "AirlineCode" | "ProviderCode" | "SectorType" | "CabinCode"
 >;
 export type FareTypeUpdateRequest = FareTypeAddRequest & Pick<FareTypeDetail, "ProductId" | "IsActive">;
+
+/* ───────────── Master: Discount ───────────── */
+
+export interface DiscountDetail {
+  Id: number;
+  ChannelCode: string;
+  AirlineCode: string;
+  Source: string;
+  Destination: string;
+  ProductClass: string;
+  RangeStart: number;
+  RangeEnd: number;
+  SectorType: string;
+  SearchType: string;
+  DiscountAmount: number;
+  IsConvenienceFee: boolean;
+  ConvenienceFee: number;
+  Cabin: string;
+  PaxType: string[];
+}
+
+export interface DiscountGetResponse {
+  DiscountDetails: DiscountDetail[];
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export type DiscountAddRequest = Omit<DiscountDetail, "Id">;
+export type DiscountUpdateRequest = DiscountDetail;
+
+/* ───────────── Master: Fare Rule ───────────── */
+
+export interface FareRuleDetail {
+  Id: number;
+  AirlineCode: string;
+  SectorType: string;
+  ClassCode: string;
+  FareType: string;
+  Region: string;
+  OriginCountryCode: string;
+  DestinationCountryCode: string;
+  BookingStartDate: string;
+  BookingEndDate: string;
+  TravelStartDate: string;
+  TravelEndDate: string;
+  DurationStart: number;
+  DurationStartUnit: string;
+  DurationEnd: number;
+  DurationEndUnit: string;
+  CancellationRule: string;
+  ChangeRule: string;
+  NoShowRule: string;
+  IsActive?: boolean;
+  CreatedDate?: string;
+}
+
+export interface FareRuleGetResponse {
+  FareRuleDetails: FareRuleDetail[];
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+// Add / Update payloads do not carry IsActive / CreatedDate (read-only, server-managed).
+export type FareRuleAddRequest = Omit<FareRuleDetail, "Id" | "IsActive" | "CreatedDate">;
+export type FareRuleUpdateRequest = Omit<FareRuleDetail, "IsActive" | "CreatedDate">;
+
+/* ───────────── Master: Markup ───────────── */
+
+export interface MarkupDetail {
+  Id: number;
+  ChannelCode: string;
+  AirlineCode: string;
+  Source: string;
+  Destination: string;
+  ProductClass: string;
+  RangeStart: number;
+  RangeEnd: number;
+  SectorType: string;
+  SearchType: string;
+  MarkupAmount: number;
+  Cabin: string;
+  PaxType: string[];
+}
+
+export interface MarkupGetResponse {
+  MarkupDetails: MarkupDetail[];
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export type MarkupAddRequest = Omit<MarkupDetail, "Id">;
+export type MarkupUpdateRequest = MarkupDetail;

@@ -35,6 +35,15 @@ import type {
   FareTypeGetResponse,
   FareTypeAddRequest,
   FareTypeUpdateRequest,
+  DiscountGetResponse,
+  DiscountAddRequest,
+  DiscountUpdateRequest,
+  FareRuleGetResponse,
+  FareRuleAddRequest,
+  FareRuleUpdateRequest,
+  MarkupGetResponse,
+  MarkupAddRequest,
+  MarkupUpdateRequest,
 } from "../types";
 
 function extractErrorMessage(error: unknown): string {
@@ -539,6 +548,7 @@ async function getMaster(path: string, signal?: AbortSignal): Promise<MasterOpti
 
 export const getAirlines = (signal?: AbortSignal) => getMaster("/Master/Get/Airline/", signal);
 export const getAirports = (signal?: AbortSignal) => getMaster("/Master/Get/Airport", signal);
+export const getCountries = (signal?: AbortSignal) => getMaster("/Master/Get/Country/", signal);
 export const getFareDisplayModes = (signal?: AbortSignal) =>
   getMaster("/Master/Get/FareDisplayMode", signal);
 
@@ -604,5 +614,94 @@ export async function updateFareType(payload: FareTypeUpdateRequest): Promise<Si
     return data.ServiceResponse;
   } catch (error) {
     handleApiError("/FareType/Update", error);
+  }
+}
+
+
+export async function getDiscounts(signal?: AbortSignal): Promise<DiscountGetResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<DiscountGetResponse>>("/Discount/Get", { signal });
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/Discount/Get", error);
+  }
+}
+
+export async function addDiscount(payload: DiscountAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/Discount/Add", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Discount/Add", error);
+  }
+}
+
+export async function updateDiscount(payload: DiscountUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/Discount/Update", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Discount/Update", error);
+  }
+}
+
+/* ───────────── Master: Fare Rule ───────────── */
+
+export async function getFareRules(signal?: AbortSignal): Promise<FareRuleGetResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<FareRuleGetResponse>>("/FareRule/Get", { signal });
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/FareRule/Get", error);
+  }
+}
+
+export async function addFareRule(payload: FareRuleAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/FareRule/Add", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/FareRule/Add", error);
+  }
+}
+
+export async function updateFareRule(payload: FareRuleUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/FareRule/Update", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/FareRule/Update", error);
+  }
+}
+
+/* ───────────── Master: Markup ───────────── */
+
+export async function getMarkups(signal?: AbortSignal): Promise<MarkupGetResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<MarkupGetResponse>>("/MarkUp/Get", { signal });
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/MarkUp/Get", error);
+  }
+}
+
+export async function addMarkup(payload: MarkupAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/MarkUp/Add", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/MarkUp/Add", error);
+  }
+}
+
+export async function updateMarkup(payload: MarkupUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/MarkUp/Update", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/MarkUp/Update", error);
   }
 }

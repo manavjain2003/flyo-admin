@@ -13,6 +13,9 @@ import Admins from "./pages/admins/Admins";
 import Roles from "./pages/roles/Roles";
 import Permissions from "./pages/permissions/Permissions";
 import FareTypeMaster from "./pages/master/FareTypeMaster";
+import DiscountMaster, { DISCOUNT_VIEW_ID } from "./pages/master/DiscountMaster";
+import FareRuleMaster, { FARERULE_VIEW_ID } from "./pages/master/FareRuleMaster";
+import MarkupMaster, { MARKUP_VIEW_ID } from "./pages/master/MarkupMaster";
 import Bookings from "./pages/bookings/Bookings";
 import BookingDetail from "./booking-detail/BookingDetail";
 import ComingSoon from "./pages/misc/ComingSoon";
@@ -53,6 +56,9 @@ export default function App() {
                 <Route path="/configuration" element={<RequirePermission viewId="marginconfig"><ConfigPage /></RequirePermission>} />
                 <Route path="/advanced" element={<ComingSoon title="Advanced" />} />
                 <Route path="/master/fare-type" element={<RequirePermission viewId="faretypem"><FareTypeMaster /></RequirePermission>} />
+                <Route path="/master/discount" element={<RequirePermission viewId={DISCOUNT_VIEW_ID}><DiscountMaster /></RequirePermission>} />
+                <Route path="/master/fare-rule" element={<RequirePermission viewId={FARERULE_VIEW_ID}><FareRuleMaster /></RequirePermission>} />
+                <Route path="/master/markup" element={<RequirePermission viewId={MARKUP_VIEW_ID}><MarkupMaster /></RequirePermission>} />
               </Route>
 
               <Route path="/404" element={<NotFound />} />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getAirlines,
   getAirports,
+  getCountries,
   getFareDisplayModes,
   getProductClassRows,
   type ProductClassRow,
@@ -41,6 +42,7 @@ function useMasterList(load: (signal: AbortSignal) => Promise<MasterOption[]>): 
 
 export const useAirlines = () => useMasterList(getAirlines);
 export const useAirports = () => useMasterList(getAirports);
+export const useCountries = () => useMasterList(getCountries);
 export const useFareModes = () => useMasterList(getFareDisplayModes);
 
 /**
