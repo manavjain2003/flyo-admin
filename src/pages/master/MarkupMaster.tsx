@@ -23,8 +23,6 @@ import {
   type RuleForm,
 } from "./masterShared";
 
-// NOTE: the profile payload you shared has no markup view yet. "markupm" follows the
-// existing naming (discountm / farerulem / faretypem) — change it here if the backend uses another id.
 export const MARKUP_VIEW_ID = "markupm";
 
 interface FormState extends RuleForm {

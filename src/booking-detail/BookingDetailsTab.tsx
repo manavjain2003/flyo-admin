@@ -158,7 +158,6 @@ function bagLabel(v?: string) {
 
 type SsrKind = "baggage" | "meal" | "seat" | "other";
 
-// Classify an SSR line by its code / type so every add-on lands in exactly one billing row.
 function ssrKind(s: BookingInfoSSR): SsrKind {
   const code = (s.SSRCode ?? "").toUpperCase();
   const type = String(s.SSRType ?? "");
@@ -207,8 +206,6 @@ export default function BookingDetailsTab({
     });
   });
 
-  // Everything is calculated from the booking line items (fare, tax, SSR add-ons) plus the
-  // convenience fee and instant discount from the billing API, so each column always adds up.
   const addOnTotal = baggageSsrTotal + mealSsrTotal + seatSsrTotal + otherSsrTotal;
   const totalFareAmount = billing
     ? baseSum + taxSum + (billing.ConvenienceFee ?? 0) + addOnTotal

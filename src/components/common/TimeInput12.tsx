@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-/**
- * 12-hour time input (hh : mm  AM/PM).
- * `value` / `onChange` use 24-hour "HH:mm" strings, which is what the API expects,
- * so callers never deal with AM/PM themselves.
- */
-
 type Meridiem = "AM" | "PM";
 
 export function to12h(value: string): { hour: string; minute: string; meridiem: Meridiem } {
@@ -27,7 +21,6 @@ export function to24h(hour: string, minute: string, meridiem: Meridiem): string 
   return `${String(h24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Format "HH:mm" (24h) as "hh:mm AM/PM" for display. */
 export function format12h(value: string): string {
   const t = to12h(value);
   return `${t.hour}:${t.minute} ${t.meridiem}`;
@@ -49,7 +42,6 @@ export default function TimeInput12({ value, onChange, ariaLabel = "Time" }: Tim
   const meridiemRef = useRef<Meridiem>(parsed.meridiem);
   meridiemRef.current = meridiem;
 
-  // Re-sync only when the parent value changes (e.g. "Today" reset, range auto-correction).
   useEffect(() => {
     const t = to12h(value);
     setHour(t.hour);
@@ -57,14 +49,11 @@ export default function TimeInput12({ value, onChange, ariaLabel = "Time" }: Tim
     setMeridiem(t.meridiem);
   }, [value]);
 
-  // Validate and push the current text up. Reads the live DOM values (not React state)
-  // so it is never working with a stale closure.
   function commit(ap: Meridiem = meridiemRef.current) {
     let h = Number(hourRef.current?.value ?? "");
     const mRaw = minuteRef.current?.value ?? "";
     let mer = ap;
 
-    // Be forgiving: 13-23 means a 24h hour, 0 means 12 AM.
     if (h >= 13 && h <= 23) {
       h -= 12;
       mer = "PM";
@@ -91,7 +80,6 @@ export default function TimeInput12({ value, onChange, ariaLabel = "Time" }: Tim
       role="group"
       aria-label={ariaLabel}
       onBlur={(e) => {
-        // Only commit when focus leaves the whole control, not when moving hour -> minute.
         if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
         commit();
       }}
@@ -111,7 +99,6 @@ export default function TimeInput12({ value, onChange, ariaLabel = "Time" }: Tim
           const v = digits(e.target.value);
           setHour(v);
           if (v.length === 2 || (v.length === 1 && Number(v) > 1)) {
-            // Defer so React has applied the typed value before focus moves.
             setTimeout(() => minuteRef.current?.focus(), 0);
           }
         }}

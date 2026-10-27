@@ -561,8 +561,6 @@ export interface ProductClassRow {
 }
 
 // GET /Master/Get/PRODUCTCLASS/{AirlineCode}
-// Response shape: ServiceResponse.Result.ProductClassDetails[] -> only ProductCode is used in the UI.
-// airlineCode = null ("*" / nothing selected) -> call without a code; the UI de-duplicates the result.
 export async function getProductClassRows(
   airlineCode: string | null,
   signal?: AbortSignal
@@ -648,7 +646,6 @@ export async function updateDiscount(payload: DiscountUpdateRequest): Promise<Si
   }
 }
 
-/* ───────────── Master: Fare Rule ───────────── */
 
 export async function getFareRules(signal?: AbortSignal): Promise<FareRuleGetResponse> {
   try {
@@ -678,7 +675,6 @@ export async function updateFareRule(payload: FareRuleUpdateRequest): Promise<Si
   }
 }
 
-/* ───────────── Master: Markup ───────────── */
 
 export async function getMarkups(signal?: AbortSignal): Promise<MarkupGetResponse> {
   try {

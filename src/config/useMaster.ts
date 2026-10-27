@@ -45,12 +45,7 @@ export const useAirports = () => useMasterList(getAirports);
 export const useCountries = () => useMasterList(getCountries);
 export const useFareModes = () => useMasterList(getFareDisplayModes);
 
-/**
- * Product classes for the selected airline.
- * - Refetches whenever `airlineCode` changes (null = "*" / no airline -> fetch without a code).
- * - Only `ProductCode` is shown in the dropdown.
- * - Filtered by `sectorType` (D / I) on the UI, then de-duplicated by ProductCode.
- */
+
 export function useProductClasses(airlineCode: string | null, sectorType: string): MasterState {
   const [rows, setRows] = useState<ProductClassRow[] | null>(null);
   const [loading, setLoading] = useState(true);

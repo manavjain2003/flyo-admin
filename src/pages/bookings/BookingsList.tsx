@@ -55,8 +55,6 @@ const PAYMENT_OPTIONS = [
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-// The backend only filters by date. When a time window is set we fetch the whole
-// date range in one call and apply the time filter + pagination on the client.
 const TIME_FILTER_FETCH_SIZE = 1000;
 
 type Mode = "none" | "search" | "history";
@@ -109,7 +107,6 @@ function filterLegsBySearch(
   if (field === "PNR") {
     return legs.filter((l) => [l.CRSPNR, l.AirlinePNR, l.GDSPNR].some((p) => norm(p) === q));
   }
-  // Mobile / Email / UserKey: the customer's full history is the expected result.
   return legs;
 }
 
@@ -283,9 +280,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         return;
       }
 
-      // The API returns the customer's whole transaction history in `Transactions`,
-      // not just the booking that was searched. For Booking ID / PNR searches keep
-      // only the legs that belong to what was actually searched.
       const matchedLegs = filterLegsBySearch(legs, appliedField, appliedSearch);
 
       const rows =
@@ -351,7 +345,6 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const filtered = useMemo(() => {
     let list = bookings;
 
-    // Client-side time filter (history mode only): the API ignores time.
     if (effectiveMode === "history" && timeFilterActive) {
       const from = `${startDate} ${startTime}`;
       const to = `${endDate} ${endTime}`;

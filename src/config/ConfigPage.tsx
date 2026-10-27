@@ -144,7 +144,6 @@ function HoverCell({
 
 function ConfigCell({ cfg, title }: { cfg: HandBagConfig | FareTypeConfig | null | undefined; title: string }) {
   if (!cfg) return <span className="text-[var(--color-text-muted)]">—</span>;
-  // const enabled = "Display_HandBag" in cfg ? cfg.Display_HandBag : cfg.Display_Fare;
   return (
     <HoverCell
       title={title}

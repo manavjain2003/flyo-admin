@@ -175,8 +175,6 @@ export default function BookingDetail() {
   const legs    = response?.Transactions ?? [];
 
   // `Transactions` is the customer's booking history (many different bookings), NOT this booking.
-  // Anything that describes the opened booking must come from `BookingInfo`, or from the history
-  // legs whose BookingId matches this booking.
   const currentBookingId = info?.BookingId || reference || "";
   const ownLegs = legs.filter((l) => l.BookingId === currentBookingId);
 
@@ -208,8 +206,6 @@ export default function BookingDetail() {
   const referenceNo = info?.BookingId || reference || "";
   const canCallStatus = !!orderDetail && !!referenceNo;
 
-  // Transaction id of the opened booking: BookingInfo.TransactionId (authoritative), then a history
-  // leg of the same booking. passedBooking.Id is only used if it is a plain numeric id.
   const transactionId =
     info?.TransactionId != null
       ? String(info.TransactionId)

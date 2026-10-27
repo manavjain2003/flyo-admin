@@ -140,7 +140,6 @@ export interface BookingHistoryRequest {
 
 export interface BookingSummary {
   Id: string;
-  /** Raw creation timestamp from the API (history only). */
   CreatedAt?: string;
   Reference: string;
   Status: string;
@@ -582,7 +581,6 @@ export type FareTypeAddRequest = Pick<
 >;
 export type FareTypeUpdateRequest = FareTypeAddRequest & Pick<FareTypeDetail, "ProductId" | "IsActive">;
 
-/* ───────────── Master: Discount ───────────── */
 
 export interface DiscountDetail {
   Id: number;
@@ -611,7 +609,6 @@ export interface DiscountGetResponse {
 export type DiscountAddRequest = Omit<DiscountDetail, "Id">;
 export type DiscountUpdateRequest = DiscountDetail;
 
-/* ───────────── Master: Fare Rule ───────────── */
 
 export interface FareRuleDetail {
   Id: number;
@@ -643,11 +640,9 @@ export interface FareRuleGetResponse {
   Message: string | null;
 }
 
-// Add / Update payloads do not carry IsActive / CreatedDate (read-only, server-managed).
 export type FareRuleAddRequest = Omit<FareRuleDetail, "Id" | "IsActive" | "CreatedDate">;
 export type FareRuleUpdateRequest = Omit<FareRuleDetail, "IsActive" | "CreatedDate">;
 
-/* ───────────── Master: Markup ───────────── */
 
 export interface MarkupDetail {
   Id: number;

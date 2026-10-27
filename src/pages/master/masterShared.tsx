@@ -65,7 +65,6 @@ export function OptionSelect({
   placeholder?: string;
 }) {
   const all = withAll ? [{ value: WILDCARD, label: "All (*)" }, ...options] : options;
-  // Keep a saved value selectable even if it is no longer in the master list.
   const list = value && !all.some((o) => o.value === value) ? [...all, { value, label: value }] : all;
   return (
     <SelectField id={id} label={label} value={value} error={error} onChange={(e) => onChange(e.target.value)}>
@@ -143,7 +142,6 @@ export function PaxCheckGroup({
   );
 }
 
-/* ───────── Shared "route rule" form (used by Discount and Markup) ───────── */
 
 export interface RuleForm {
   ChannelCode: string;
@@ -208,7 +206,6 @@ export function RuleFields({
 }) {
   const airlines = useAirlines();
   const airports = useAirports();
-  // "*" airline -> fetch product classes without an airline code (existing app convention)
   const productClasses = useProductClasses(form.AirlineCode === WILDCARD ? null : form.AirlineCode || null, form.SectorType);
 
   return (
@@ -228,7 +225,6 @@ export function RuleFields({
         value={form.AirlineCode}
         options={airlines.options ?? []}
         error={errors.AirlineCode}
-        // a different airline means a different product class list
         onChange={(v) => onChange({ AirlineCode: v, ProductClass: WILDCARD })}
       />
       <OptionSelect
