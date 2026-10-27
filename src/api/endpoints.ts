@@ -1,6 +1,7 @@
 import axios from "axios";
 import api from "./api";
 import { encryptAES } from "../utils/crypto";
+import { createdDateToDisplay } from "../utils/dates";
 import { parseMasterList, type MasterOption } from "./masterParse";
 import type {
   ApiEnvelope,
@@ -249,13 +250,14 @@ export async function getBookingHistory(
         Provider: pnr,
         Amount: 0,
         PNR: pnr,
-        BookedAt: formatDateShort(r.CreatedDate ?? ""),
+        CreatedAt: r.CreatedDate ?? "",
+        BookedAt: createdDateToDisplay(r.CreatedDate ?? "") || formatDateShort(r.CreatedDate ?? ""),
       };
     });
 
     return {
       Bookings,
-      TotalCount: raw?.TotalCount ?? Bookings.length,
+      TotalCount: raw?.TotalCount ?? null,
       ErrorCode: raw?.ErrorCode ?? null,
       Message: raw?.Message ?? null,
     };

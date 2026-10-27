@@ -142,6 +142,8 @@ export interface BookingHistoryRequest {
 
 export interface BookingSummary {
   Id: string;
+  /** Raw creation timestamp from the API (history only). */
+  CreatedAt?: string;
   Reference: string;
   Status: string;
   PaymentStatus?: string;
@@ -156,7 +158,7 @@ export interface BookingSummary {
 
 export interface BookingHistoryResponse {
   Bookings: BookingSummary[];
-  TotalCount: number;
+  TotalCount: number | null;
   ErrorCode: string | null;
   Message: string | null;
 }
