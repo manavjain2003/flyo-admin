@@ -207,20 +207,16 @@ export default function BookingDetailsTab({
     });
   });
 
-  // Total Fare = sum of every line shown in the summary (all computed from the booking data),
-  // so the column always adds up. Total Amount Paid comes from the billing API.
+  // Everything is calculated from the booking line items (fare, tax, SSR add-ons) plus the
+  // convenience fee and instant discount from the billing API, so each column always adds up.
   const addOnTotal = baggageSsrTotal + mealSsrTotal + seatSsrTotal + otherSsrTotal;
   const totalFareAmount = billing
-    ? baseSum + (billing.ConvenienceFee ?? 0) + taxSum + addOnTotal
+    ? baseSum + taxSum + (billing.ConvenienceFee ?? 0) + addOnTotal
     : undefined;
-  const expectedPaid =
+  const totalAmountPaid =
     totalFareAmount !== undefined
       ? totalFareAmount - (billing?.InstantDiscount ?? 0)
       : undefined;
-  const paidMismatch =
-    expectedPaid !== undefined &&
-    billing?.TotalAmountPaid != null &&
-    Math.abs(expectedPaid - billing.TotalAmountPaid) > 1;
 
   const gstNumber = gst?.GSTNumber || info.GSTNumber || first?.GSTNumber || "";
   const gstCompany = gst?.GSTCompanyName || info.GSTCompanyName || first?.GSTCompanyName || "";
@@ -547,8 +543,8 @@ const contactPhone = info.CustomerMobile;
 
       <SectionCard
         title={
-          billing?.TotalAmountPaid != null
-            ? `Billing Summary · Total ₹${Number(billing.TotalAmountPaid).toLocaleString("en-IN", {
+          totalAmountPaid !== undefined
+            ? `Billing Summary · Total ₹${totalAmountPaid.toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
               })}`
             : "Billing Summary"
@@ -565,8 +561,8 @@ const contactPhone = info.CustomerMobile;
               />
               <Row label="Tax" value={billing ? fmtCurrency(taxSum) : "—"} />
               <Row label="Seat Amount" value={seatSsrTotal > 0 ? fmtCurrency(seatSsrTotal) : "—"} />
-              <Row label="Baggage" value={fmtCurrency(baggageSsrTotal)} />
-              <Row label="Meal" value={fmtCurrency(mealSsrTotal)} />
+              <Row label="Baggage" value={baggageSsrTotal > 0 ? fmtCurrency(baggageSsrTotal) : "—"} />
+              <Row label="Meal" value={mealSsrTotal > 0 ? fmtCurrency(mealSsrTotal) : "—"} />
               {otherSsrTotal > 0 && (
                 <Row label="Other Add-ons" value={fmtCurrency(otherSsrTotal)} />
               )}
@@ -583,19 +579,11 @@ const contactPhone = info.CustomerMobile;
               />
               <Row
                 label="Total Amount Paid"
-                value={billing ? fmtCurrency(billing.TotalAmountPaid) : "—"}
+                value={totalAmountPaid !== undefined ? fmtCurrency(totalAmountPaid) : "—"}
                 strong
               />
             </Panel>
           </div>
-
-          {paidMismatch && expectedPaid !== undefined && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              Totals don&apos;t reconcile: Total Fare − Instant Discount is {fmtCurrency(expectedPaid)},
-              but the recorded Total Amount Paid is {fmtCurrency(billing?.TotalAmountPaid)}. The
-              billing API may not be including add-ons (SSR) in the amount paid.
-            </p>
-          )}
 
           {payment && (
             <Panel title="Payment Details">

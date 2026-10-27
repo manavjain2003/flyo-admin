@@ -13,7 +13,7 @@ import {
   groupTransactionsByBooking,
 } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
-import type { BookingSummary, GroupedBooking, SearchType } from "../../types";
+import type { BookingSummary, GroupedBooking, SearchType, TransactionLeg } from "../../types";
 
 
 type SearchFieldKey = "Reference" | "Mobile" | "EMail" | "UserKey" | "PNR";
@@ -85,6 +85,69 @@ function groupToSummaries(g: GroupedBooking): BookingSummary[] {
       BookedAt: formatDateShort(leg.BookingDate),
     };
   });
+}
+
+function norm(v: unknown) {
+  return String(v ?? "").trim().toUpperCase();
+}
+
+function filterLegsBySearch(
+  legs: TransactionLeg[],
+  field: SearchFieldKey,
+  value: string
+): TransactionLeg[] {
+  const q = norm(value);
+  if (field === "Reference") {
+    return legs.filter((l) => norm(l.BookingId) === q);
+  }
+  if (field === "PNR") {
+    return legs.filter((l) => [l.CRSPNR, l.AirlinePNR, l.GDSPNR].some((p) => norm(p) === q));
+  }
+  // Mobile / Email / UserKey: the customer's full history is the expected result.
+  return legs;
+}
+
+// 24-hour time helpers (native <input type="time"> shows AM/PM based on locale).
+function parseTime24(raw: string): string | null {
+  const s = raw.trim();
+  let h: number;
+  let m: number;
+  if (s.includes(":")) {
+    const [hh, mm = "0"] = s.split(":");
+    if (!/^\d{1,2}$/.test(hh) || !/^\d{1,2}$/.test(mm)) return null;
+    h = Number(hh);
+    m = Number(mm);
+  } else if (/^\d{1,2}$/.test(s)) {
+    h = Number(s);
+    m = 0;
+  } else if (/^\d{3,4}$/.test(s)) {
+    h = Number(s.slice(0, -2));
+    m = Number(s.slice(-2));
+  } else {
+    return null;
+  }
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function autoColon(e: React.ChangeEvent<HTMLInputElement>) {
+  let v = e.target.value.replace(/[^\d:]/g, "");
+  if (!v.includes(":") && v.length > 2) v = `${v.slice(0, 2)}:${v.slice(2)}`;
+  e.target.value = v.slice(0, 5);
+}
+
+function commitTime(
+  e: React.FocusEvent<HTMLInputElement>,
+  current: string,
+  apply: (v: string) => void
+) {
+  const next = parseTime24(e.target.value);
+  if (!next) {
+    e.target.value = current;
+    return;
+  }
+  e.target.value = next;
+  if (next !== current) apply(next);
 }
 
 function statusBadgeClasses(status: string) {
@@ -257,9 +320,14 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         return;
       }
 
+      // The API returns the customer's whole transaction history in `Transactions`,
+      // not just the booking that was searched. For Booking ID / PNR searches keep
+      // only the legs that belong to what was actually searched.
+      const matchedLegs = filterLegsBySearch(legs, appliedField, appliedSearch);
+
       const rows =
-        legs.length > 0
-          ? groupTransactionsByBooking(legs).flatMap(groupToSummaries)
+        matchedLegs.length > 0
+          ? groupTransactionsByBooking(matchedLegs).flatMap(groupToSummaries)
           : info
           ? [
               {
@@ -492,11 +560,17 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                   <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                     From time
                     <input
-                      type="time"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      autoComplete="off"
                       className="input-base"
-                      value={startTime}
-                      max={startDate === endDate ? endTime : undefined}
-                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      key={startTime}
+                      defaultValue={startTime}
+                      onChange={autoColon}
+                      onBlur={(e) => commitTime(e, startTime, handleStartTimeChange)}
+                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                     />
                   </label>
                 </div>
@@ -514,11 +588,17 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                   <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                     To time
                     <input
-                      type="time"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      autoComplete="off"
                       className="input-base"
-                      value={endTime}
-                      min={startDate === endDate ? startTime : undefined}
-                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      key={endTime}
+                      defaultValue={endTime}
+                      onChange={autoColon}
+                      onBlur={(e) => commitTime(e, endTime, handleEndTimeChange)}
+                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                     />
                   </label>
                 </div>
@@ -601,12 +681,18 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                 <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                   From time
                   <input
-                    type="time"
-                    className="input-base"
-                    value={startTime}
-                    max={startDate === endDate ? endTime : undefined}
-                    onChange={(e) => handleStartTimeChange(e.target.value)}
-                  />
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      autoComplete="off"
+                      className="input-base"
+                      key={startTime}
+                      defaultValue={startTime}
+                      onChange={autoColon}
+                      onBlur={(e) => commitTime(e, startTime, handleStartTimeChange)}
+                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                    />
                 </label>
               </div>
               <div className="flex items-end gap-2">
@@ -623,12 +709,18 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                 <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                   To time
                   <input
-                    type="time"
-                    className="input-base"
-                    value={endTime}
-                    min={startDate === endDate ? startTime : undefined}
-                    onChange={(e) => handleEndTimeChange(e.target.value)}
-                  />
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      autoComplete="off"
+                      className="input-base"
+                      key={endTime}
+                      defaultValue={endTime}
+                      onChange={autoColon}
+                      onBlur={(e) => commitTime(e, endTime, handleEndTimeChange)}
+                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                    />
                 </label>
               </div>
               <button
