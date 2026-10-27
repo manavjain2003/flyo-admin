@@ -146,12 +146,28 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
 
   const [startDate, setStartDate] = useState(() => toDateInput(new Date()));
   const [endDate, setEndDate] = useState(() => toDateInput(new Date()));
+  const [startTime, setStartTime] = useState("00:00");
+  const [endTime, setEndTime] = useState("23:59");
 
   function handleStartDateChange(v: string) {
     if (!v) return;
     setPageNumber(1);
     setStartDate(v);
-    if (v > endDate) setEndDate(v); 
+    if (v > endDate) setEndDate(v);
+  }
+
+  function handleStartTimeChange(v: string) {
+    if (!v) return;
+    setPageNumber(1);
+    setStartTime(v);
+    if (startDate === endDate && v > endTime) setEndTime(v);
+  }
+
+  function handleEndTimeChange(v: string) {
+    if (!v) return;
+    setPageNumber(1);
+    setEndTime(v);
+    if (startDate === endDate && v < startTime) setStartTime(v);
   }
 
   function handleEndDateChange(v: string) {
@@ -166,6 +182,8 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     setPageNumber(1);
     setStartDate(t);
     setEndDate(t);
+    setStartTime("00:00");
+    setEndTime("23:59");
   }
 
   function applySearch() {
@@ -200,6 +218,8 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
           PageSize: pageSize,
           StartDate: startDate,
           EndDate: endDate,
+          StartTime: startTime,
+          EndTime: endTime,
           CurrentStatus: lockedStatus ?? status,
           PaymentStatus: paymentStatus,
         },
@@ -277,7 +297,7 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     const controller = new AbortController();
     loadHistory(controller.signal);
     return () => controller.abort();
-  }, [effectiveMode, pageNumber, pageSize, status, paymentStatus, lockedStatus, startDate, endDate]);
+  }, [effectiveMode, pageNumber, pageSize, status, paymentStatus, lockedStatus, startDate, endDate, startTime, endTime]);
 
   useEffect(() => {
     if (!useSearchCard) return;
@@ -458,31 +478,60 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
 
             {showHistory && (
               <div className="mt-5 pt-5 border-t border-[var(--color-border-soft)] flex items-end gap-3 flex-wrap">
-                <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-                  From
-                  <input
-                    type="date"
-                    className="input-base"
-                    value={startDate}
-                    max={endDate}
-                    onChange={(e) => handleStartDateChange(e.target.value)}
-                  />
-                </label>
-                <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-                  To
-                  <input
-                    type="date"
-                    className="input-base"
-                    value={endDate}
-                    min={startDate}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
-                  />
-                </label>
+                <div className="flex items-end gap-2">
+                  <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                    From
+                    <input
+                      type="date"
+                      className="input-base"
+                      value={startDate}
+                      max={endDate}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                    />
+                  </label>
+                  <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                    From time
+                    <input
+                      type="time"
+                      className="input-base"
+                      value={startTime}
+                      max={startDate === endDate ? endTime : undefined}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="flex items-end gap-2">
+                  <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                    To
+                    <input
+                      type="date"
+                      className="input-base"
+                      value={endDate}
+                      min={startDate}
+                      onChange={(e) => handleEndDateChange(e.target.value)}
+                    />
+                  </label>
+                  <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                    To time
+                    <input
+                      type="time"
+                      className="input-base"
+                      value={endTime}
+                      min={startDate === endDate ? startTime : undefined}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                    />
+                  </label>
+                </div>
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={resetToToday}
-                  disabled={startDate === toDateInput(new Date()) && endDate === startDate}
+                  disabled={
+                    startDate === toDateInput(new Date()) &&
+                    endDate === startDate &&
+                    startTime === "00:00" &&
+                    endTime === "23:59"
+                  }
                 >
                   Today
                 </button>
@@ -538,31 +587,60 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         <>
           <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
             <div className="flex items-end gap-3 flex-wrap">
-              <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-                From
-                <input
-                  type="date"
-                  className="input-base"
-                  value={startDate}
-                  max={endDate}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
-                />
-              </label>
-              <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-                To
-                <input
-                  type="date"
-                  className="input-base"
-                  value={endDate}
-                  min={startDate}
-                  onChange={(e) => handleEndDateChange(e.target.value)}
-                />
-              </label>
+              <div className="flex items-end gap-2">
+                <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  From
+                  <input
+                    type="date"
+                    className="input-base"
+                    value={startDate}
+                    max={endDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                  />
+                </label>
+                <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  From time
+                  <input
+                    type="time"
+                    className="input-base"
+                    value={startTime}
+                    max={startDate === endDate ? endTime : undefined}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="flex items-end gap-2">
+                <label className="flex w-40 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  To
+                  <input
+                    type="date"
+                    className="input-base"
+                    value={endDate}
+                    min={startDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                  />
+                </label>
+                <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  To time
+                  <input
+                    type="time"
+                    className="input-base"
+                    value={endTime}
+                    min={startDate === endDate ? startTime : undefined}
+                    onChange={(e) => handleEndTimeChange(e.target.value)}
+                  />
+                </label>
+              </div>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={resetToToday}
-                disabled={startDate === toDateInput(new Date()) && endDate === startDate}
+                disabled={
+                    startDate === toDateInput(new Date()) &&
+                    endDate === startDate &&
+                    startTime === "00:00" &&
+                    endTime === "23:59"
+                  }
               >
                 Today
               </button>

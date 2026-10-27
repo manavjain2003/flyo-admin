@@ -4,6 +4,7 @@ import type {
   BookingInfoFareDetails,
   BookingInfoJourney,
   BookingInfoPassenger,
+  BookingInfoSSR,
   SearchTransactionBillingInfo,
   SearchTransactionBookingInfo,
   SearchTransactionGSTInfo,
@@ -155,6 +156,18 @@ function bagLabel(v?: string) {
   return s;
 }
 
+type SsrKind = "baggage" | "meal" | "seat" | "other";
+
+// Classify an SSR line by its code / type so every add-on lands in exactly one billing row.
+function ssrKind(s: BookingInfoSSR): SsrKind {
+  const code = (s.SSRCode ?? "").toUpperCase();
+  const type = String(s.SSRType ?? "");
+  if (code === "BAG" || type === "2") return "baggage";
+  if (code === "MEAL" || code === "ML" || type === "1") return "meal";
+  if (code.startsWith("SEAT") || type === "3") return "seat";
+  return "other";
+}
+
 export default function BookingDetailsTab({
   info,
   contact,
@@ -175,6 +188,8 @@ export default function BookingDetailsTab({
   let taxSum = 0;
   let baggageSsrTotal = 0;
   let mealSsrTotal = 0;
+  let seatSsrTotal = 0;
+  let otherSsrTotal = 0;
 
   journeys.forEach((j) => {
     (j.PassengerDetails ?? []).forEach((p) => {
@@ -184,16 +199,28 @@ export default function BookingDetailsTab({
     });
     (Array.isArray(j.SSRDetails) ? j.SSRDetails : []).forEach((s) => {
       const price = Number(s.SSRPrice) || 0;
-      const code = (s.SSRCode ?? "").toUpperCase();
-      const type = String(s.SSRType ?? "");
-      if (code === "BAG" || type === "2") baggageSsrTotal += price;
-      else if (code === "MEAL" || code === "ML" || type === "1") mealSsrTotal += price;
+      const kind = ssrKind(s);
+      if (kind === "baggage") baggageSsrTotal += price;
+      else if (kind === "meal") mealSsrTotal += price;
+      else if (kind === "seat") seatSsrTotal += price;
+      else otherSsrTotal += price;
     });
   });
 
+  // Total Fare = sum of every line shown in the summary (all computed from the booking data),
+  // so the column always adds up. Total Amount Paid comes from the billing API.
+  const addOnTotal = baggageSsrTotal + mealSsrTotal + seatSsrTotal + otherSsrTotal;
   const totalFareAmount = billing
-    ? (billing.TotalItineraryFare ?? 0) + (billing.ConvenienceFee ?? 0)
+    ? baseSum + (billing.ConvenienceFee ?? 0) + taxSum + addOnTotal
     : undefined;
+  const expectedPaid =
+    totalFareAmount !== undefined
+      ? totalFareAmount - (billing?.InstantDiscount ?? 0)
+      : undefined;
+  const paidMismatch =
+    expectedPaid !== undefined &&
+    billing?.TotalAmountPaid != null &&
+    Math.abs(expectedPaid - billing.TotalAmountPaid) > 1;
 
   const gstNumber = gst?.GSTNumber || info.GSTNumber || first?.GSTNumber || "";
   const gstCompany = gst?.GSTCompanyName || info.GSTCompanyName || first?.GSTCompanyName || "";
@@ -414,6 +441,7 @@ const contactPhone = info.CustomerMobile;
                                       >
                                         {s.SSRCode}
                                         {s.SSRDesc ? `: ${s.SSRDesc}` : ""}
+                                        {Number(s.SSRPrice) > 0 ? ` · ${fmtCurrency(Number(s.SSRPrice))}` : ""}
                                       </span>
                                     ))}
                                   </div>
@@ -536,9 +564,12 @@ const contactPhone = info.CustomerMobile;
                 value={billing ? fmtCurrency(billing.ConvenienceFee) : "—"}
               />
               <Row label="Tax" value={billing ? fmtCurrency(taxSum) : "—"} />
-              <Row label="Seat Amount" value="—" />
+              <Row label="Seat Amount" value={seatSsrTotal > 0 ? fmtCurrency(seatSsrTotal) : "—"} />
               <Row label="Baggage" value={fmtCurrency(baggageSsrTotal)} />
               <Row label="Meal" value={fmtCurrency(mealSsrTotal)} />
+              {otherSsrTotal > 0 && (
+                <Row label="Other Add-ons" value={fmtCurrency(otherSsrTotal)} />
+              )}
               <Row
                 label="Total Fare Amount"
                 value={totalFareAmount !== undefined ? fmtCurrency(totalFareAmount) : "—"}
@@ -557,6 +588,14 @@ const contactPhone = info.CustomerMobile;
               />
             </Panel>
           </div>
+
+          {paidMismatch && expectedPaid !== undefined && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Totals don&apos;t reconcile: Total Fare − Instant Discount is {fmtCurrency(expectedPaid)},
+              but the recorded Total Amount Paid is {fmtCurrency(billing?.TotalAmountPaid)}. The
+              billing API may not be including add-ons (SSR) in the amount paid.
+            </p>
+          )}
 
           {payment && (
             <Panel title="Payment Details">

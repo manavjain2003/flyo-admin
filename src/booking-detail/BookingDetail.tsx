@@ -174,38 +174,50 @@ export default function BookingDetail() {
   const contact = response?.ContactInfo ?? null;
   const legs    = response?.Transactions ?? [];
 
+  // `Transactions` is the customer's booking history (many different bookings), NOT this booking.
+  // Anything that describes the opened booking must come from `BookingInfo`, or from the history
+  // legs whose BookingId matches this booking.
+  const currentBookingId = info?.BookingId || reference || "";
+  const ownLegs = legs.filter((l) => l.BookingId === currentBookingId);
+
   const airlinePNR = info?.OnwardJourneyDetail?.AirlinePNR
     || info?.ReturnJourneyDetail?.AirlinePNR
-    || legs.find(l => l.AirlinePNR)?.AirlinePNR
+    || ownLegs.find(l => l.AirlinePNR)?.AirlinePNR
     || passedBooking?.PNR
     || "";
 
   const gdsPNR = info?.OnwardJourneyDetail?.GDSPNR
     || info?.ReturnJourneyDetail?.GDSPNR
-    || legs.find(l => l.GDSPNR)?.GDSPNR
+    || ownLegs.find(l => l.GDSPNR)?.GDSPNR
     || "";
 
   const bookingStatus = info?.OnwardJourneyDetail?.BookingStatus
-    || legs[0]?.BookingStatus
+    || ownLegs[0]?.BookingStatus
     || passedBooking?.Status
     || "";
 
   const providerCode = info?.OnwardJourneyDetail?.ProviderCode ?? "";
   const airline = info?.OnwardJourneyDetail?.FlightDetails[0]?.AirlineName ?? "";
-  const bookedAt = legs[0]?.BookingDate ?? passedBooking?.BookedAt ?? "";
+  const bookedAt = ownLegs[0]?.BookingDate ?? passedBooking?.BookedAt ?? "";
 
   const orderDetail: string =
-    (legs.find((l) => (l as any).OrderDetail) as any)?.OrderDetail ||
+    (ownLegs.find((l) => (l as any).OrderDetail) as any)?.OrderDetail ||
     (info as any)?.OrderDetail ||
     "";
 
   const referenceNo = info?.BookingId || reference || "";
   const canCallStatus = !!orderDetail && !!referenceNo;
 
+  // Transaction id of the opened booking: BookingInfo.TransactionId (authoritative), then a history
+  // leg of the same booking. passedBooking.Id is only used if it is a plain numeric id.
   const transactionId =
-    legs[0]?.TransactionId != null
-      ? String(legs[0].TransactionId)
-      : passedBooking?.Id ?? "";
+    info?.TransactionId != null
+      ? String(info.TransactionId)
+      : ownLegs[0]?.TransactionId != null
+        ? String(ownLegs[0].TransactionId)
+        : /^\d+$/.test(passedBooking?.Id ?? "")
+          ? (passedBooking?.Id ?? "")
+          : "";
 
   const documentParams = {
     TransactionID: transactionId,
