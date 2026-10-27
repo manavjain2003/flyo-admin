@@ -7,6 +7,8 @@ import {
   EmptyState,
   ErrorBanner,
 } from "../../components/common/UI";
+import TimeInput12 from "../../components/common/TimeInput12";
+import { createdDateToKey } from "../../utils/dates";
 import {
   getBookingHistory,
   searchTransaction,
@@ -52,6 +54,10 @@ const PAYMENT_OPTIONS = [
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+// The backend only filters by date. When a time window is set we fetch the whole
+// date range in one call and apply the time filter + pagination on the client.
+const TIME_FILTER_FETCH_SIZE = 1000;
 
 type Mode = "none" | "search" | "history";
 
@@ -105,49 +111,6 @@ function filterLegsBySearch(
   }
   // Mobile / Email / UserKey: the customer's full history is the expected result.
   return legs;
-}
-
-// 24-hour time helpers (native <input type="time"> shows AM/PM based on locale).
-function parseTime24(raw: string): string | null {
-  const s = raw.trim();
-  let h: number;
-  let m: number;
-  if (s.includes(":")) {
-    const [hh, mm = "0"] = s.split(":");
-    if (!/^\d{1,2}$/.test(hh) || !/^\d{1,2}$/.test(mm)) return null;
-    h = Number(hh);
-    m = Number(mm);
-  } else if (/^\d{1,2}$/.test(s)) {
-    h = Number(s);
-    m = 0;
-  } else if (/^\d{3,4}$/.test(s)) {
-    h = Number(s.slice(0, -2));
-    m = Number(s.slice(-2));
-  } else {
-    return null;
-  }
-  if (h > 23 || m > 59) return null;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function autoColon(e: React.ChangeEvent<HTMLInputElement>) {
-  let v = e.target.value.replace(/[^\d:]/g, "");
-  if (!v.includes(":") && v.length > 2) v = `${v.slice(0, 2)}:${v.slice(2)}`;
-  e.target.value = v.slice(0, 5);
-}
-
-function commitTime(
-  e: React.FocusEvent<HTMLInputElement>,
-  current: string,
-  apply: (v: string) => void
-) {
-  const next = parseTime24(e.target.value);
-  if (!next) {
-    e.target.value = current;
-    return;
-  }
-  e.target.value = next;
-  if (next !== current) apply(next);
 }
 
 function statusBadgeClasses(status: string) {
@@ -211,6 +174,8 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const [endDate, setEndDate] = useState(() => toDateInput(new Date()));
   const [startTime, setStartTime] = useState("00:00");
   const [endTime, setEndTime] = useState("23:59");
+
+  const timeFilterActive = startTime !== "00:00" || endTime !== "23:59";
 
   function handleStartDateChange(v: string) {
     if (!v) return;
@@ -277,12 +242,10 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     try {
       const res = await getBookingHistory(
         {
-          PageNumber: pageNumber,
-          PageSize: pageSize,
+          PageNumber: timeFilterActive ? 1 : pageNumber,
+          PageSize: timeFilterActive ? TIME_FILTER_FETCH_SIZE : pageSize,
           StartDate: startDate,
           EndDate: endDate,
-          StartTime: startTime,
-          EndTime: endTime,
           CurrentStatus: lockedStatus ?? status,
           PaymentStatus: paymentStatus,
         },
@@ -365,7 +328,7 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     const controller = new AbortController();
     loadHistory(controller.signal);
     return () => controller.abort();
-  }, [effectiveMode, pageNumber, pageSize, status, paymentStatus, lockedStatus, startDate, endDate, startTime, endTime]);
+  }, [effectiveMode, pageNumber, pageSize, status, paymentStatus, lockedStatus, startDate, endDate, timeFilterActive]);
 
   useEffect(() => {
     if (!useSearchCard) return;
@@ -386,19 +349,34 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
   const activeQuery = useSearchCard ? "" : searchValue.trim().toLowerCase();
 
   const filtered = useMemo(() => {
-    if (!activeQuery) return bookings;
-    return bookings.filter((b) =>
+    let list = bookings;
+
+    // Client-side time filter (history mode only): the API ignores time.
+    if (effectiveMode === "history" && timeFilterActive) {
+      const from = `${startDate} ${startTime}`;
+      const to = `${endDate} ${endTime}`;
+      list = list.filter((b) => {
+        const key = createdDateToKey(b.CreatedAt ?? "");
+        return !!key && key >= from && key <= to;
+      });
+    }
+
+    if (!activeQuery) return list;
+    return list.filter((b) =>
       String((b as unknown as Record<string, unknown>)[searchField] ?? "")
         .toLowerCase()
         .includes(activeQuery)
     );
-  }, [bookings, searchField, activeQuery]);
+  }, [bookings, searchField, activeQuery, effectiveMode, timeFilterActive, startDate, endDate, startTime, endTime]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const clientPaged = effectiveMode === "search" || (effectiveMode === "history" && timeFilterActive);
+  const displayCount = clientPaged ? filtered.length : totalCount;
+
+  const totalPages = Math.max(1, Math.ceil(displayCount / pageSize));
   const showActions = canRead || canWrite;
 
   const rows =
-    effectiveMode === "search"
+    clientPaged
       ? filtered.slice((pageNumber - 1) * pageSize, pageNumber * pageSize)
       : filtered;
 
@@ -441,7 +419,7 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
     <div className="card-base px-4 py-2" aria-live="polite">
       <p className="text-xs text-[var(--color-text-muted)]">{counterLabel}</p>
       <p className="text-2xl font-semibold leading-tight">
-        {loading || effectiveMode === "none" ? "–" : totalCount}
+        {loading || effectiveMode === "none" ? "–" : displayCount}
       </p>
     </div>
   );
@@ -557,21 +535,9 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                       onChange={(e) => handleStartDateChange(e.target.value)}
                     />
                   </label>
-                  <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  <label className="flex w-36 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                     From time
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      autoComplete="off"
-                      className="input-base"
-                      key={startTime}
-                      defaultValue={startTime}
-                      onChange={autoColon}
-                      onBlur={(e) => commitTime(e, startTime, handleStartTimeChange)}
-                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                    />
+                    <TimeInput12 ariaLabel="From time" value={startTime} onChange={handleStartTimeChange} />
                   </label>
                 </div>
                 <div className="flex items-end gap-2">
@@ -585,21 +551,9 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                       onChange={(e) => handleEndDateChange(e.target.value)}
                     />
                   </label>
-                  <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                  <label className="flex w-36 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                     To time
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      autoComplete="off"
-                      className="input-base"
-                      key={endTime}
-                      defaultValue={endTime}
-                      onChange={autoColon}
-                      onBlur={(e) => commitTime(e, endTime, handleEndTimeChange)}
-                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                    />
+                    <TimeInput12 ariaLabel="To time" value={endTime} onChange={handleEndTimeChange} />
                   </label>
                 </div>
                 <button
@@ -678,21 +632,9 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                     onChange={(e) => handleStartDateChange(e.target.value)}
                   />
                 </label>
-                <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                <label className="flex w-36 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                   From time
-                  <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      autoComplete="off"
-                      className="input-base"
-                      key={startTime}
-                      defaultValue={startTime}
-                      onChange={autoColon}
-                      onBlur={(e) => commitTime(e, startTime, handleStartTimeChange)}
-                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                    />
+                  <TimeInput12 ariaLabel="From time" value={startTime} onChange={handleStartTimeChange} />
                 </label>
               </div>
               <div className="flex items-end gap-2">
@@ -706,21 +648,9 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
                     onChange={(e) => handleEndDateChange(e.target.value)}
                   />
                 </label>
-                <label className="flex w-28 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+                <label className="flex w-36 flex-col gap-1 text-xs text-[var(--color-text-muted)]">
                   To time
-                  <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      autoComplete="off"
-                      className="input-base"
-                      key={endTime}
-                      defaultValue={endTime}
-                      onChange={autoColon}
-                      onBlur={(e) => commitTime(e, endTime, handleEndTimeChange)}
-                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                    />
+                  <TimeInput12 ariaLabel="To time" value={endTime} onChange={handleEndTimeChange} />
                 </label>
               </div>
               <button
@@ -886,7 +816,7 @@ export default function BookingsList({ title, description, viewId, lockedStatus 
         {!loading && !error && filtered.length > 0 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--color-border-soft)] text-sm text-[var(--color-text-muted)]">
             <span>
-              Page {pageNumber} of {totalPages} · {totalCount} total
+              Page {pageNumber} of {totalPages} · {displayCount} total
             </span>
             <div className="flex gap-2">
               <button

@@ -225,7 +225,7 @@ export async function getBookingHistory(
     const raw = data.ServiceResponse;
     const items: any[] = raw?.Bookings ?? [];
 
-    const Bookings: BookingSummary[] = items.map((r: any) => {
+    const Bookings: BookingSummary[] = items.map((r: any, idx: number) => {
       const sector: string = r.Sector ?? "";
       const parts = sector.split("/").filter(Boolean);
       const source = parts[0] ?? "";
@@ -240,7 +240,7 @@ export async function getBookingHistory(
       const pnr = r.CRSPNR || r.AirlinePNR || "";
 
       return {
-        Id: String(r.TransactionId),
+        Id: `${r.TransactionId}-${r.SearchType ?? ""}-${idx}`,
         Reference: r.ReferenceNo?.trim() ?? "",
         Status: mapStatus(r.CurrentStatus ?? r.BookingStatus ?? ""),
         PaymentStatus: r.PaymentStatus ?? "",

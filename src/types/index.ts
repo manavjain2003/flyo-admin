@@ -134,8 +134,6 @@ export interface BookingHistoryRequest {
   PageSize: number;
   StartDate: string;
   EndDate: string;
-  StartTime: string; // HH:mm
-  EndTime: string; // HH:mm
   CurrentStatus: string;
   PaymentStatus: string;
 }
