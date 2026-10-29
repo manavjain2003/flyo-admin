@@ -327,7 +327,7 @@ export default function DiscountMaster() {
             className="flex flex-col gap-4"
           >
             {formError && <ErrorBanner message={formError} />}
-            <RuleFields form={form} errors={errors} onChange={patch} idPrefix="disc" />
+           <RuleFields form={form} errors={errors} onChange={patch} idPrefix="disc" productClassAfterCabin />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <IntField
                 id="disc-amount"

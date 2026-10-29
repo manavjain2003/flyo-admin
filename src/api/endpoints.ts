@@ -560,7 +560,9 @@ export const getFareDisplayModes = (signal?: AbortSignal) =>
 export interface ProductClassRow {
   ProductCode: string;
   SectorType: string;
+  CabinCode: string;      
   AirlineCode: string;
+
 }
 
 // GET /Master/Get/PRODUCTCLASS/{AirlineCode}
@@ -584,6 +586,7 @@ export async function getProductClassRows(
       .map((r) => ({
         ProductCode: String(r.ProductCode).trim(),
         SectorType: String(r.SectorType ?? ""),
+        CabinCode: String(r.CabinCode ?? ""),   
         AirlineCode: String(r.AirlineCode ?? ""),
       }));
   } catch (error) {

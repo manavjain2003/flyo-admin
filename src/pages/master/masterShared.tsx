@@ -206,16 +206,85 @@ export function RuleFields({
   errors,
   onChange,
   idPrefix,
+  productClassAfterCabin = false,
 }: {
   form: RuleForm;
   errors: Errors;
   onChange: (patch: Partial<RuleForm>) => void;
   idPrefix: string;
+  /** Places Product Class after Cabin and filters its list by sector + cabin. */
+  productClassAfterCabin?: boolean;
 }) {
   const airlines = useAirlines();
   const airports = useAirports();
   // "*" airline -> fetch product classes without an airline code (existing app convention)
-  const productClasses = useProductClasses(form.AirlineCode === WILDCARD ? null : form.AirlineCode || null, form.SectorType);
+  const productClasses = useProductClasses(
+    form.AirlineCode === WILDCARD ? null : form.AirlineCode || null,
+    form.SectorType,
+    productClassAfterCabin ? form.Cabin : undefined
+  );
+
+  const sectorField = (
+    <OptionSelect
+      id={`${idPrefix}-sector`}
+      label="Sector Type"
+      value={form.SectorType}
+      options={SECTOR_OPTIONS}
+      error={errors.SectorType}
+      onChange={(v) => onChange({ SectorType: v, ProductClass: WILDCARD })}
+    />
+  );
+  const productClassField = (
+    <OptionSelect
+      id={`${idPrefix}-pc`}
+      label="Product Class"
+      withAll
+      value={form.ProductClass}
+      options={productClasses.options ?? []}
+      error={errors.ProductClass}
+      onChange={(v) => onChange({ ProductClass: v })}
+    />
+  );
+  const rangeFields = (
+    <>
+      <IntField
+        id={`${idPrefix}-rs`}
+        label="Range Start"
+        value={form.RangeStart}
+        error={errors.RangeStart}
+        onChange={(v) => onChange({ RangeStart: v })}
+      />
+      <IntField
+        id={`${idPrefix}-re`}
+        label="Range End"
+        value={form.RangeEnd}
+        error={errors.RangeEnd}
+        onChange={(v) => onChange({ RangeEnd: v })}
+      />
+    </>
+  );
+  const searchField = (
+    <OptionSelect
+      id={`${idPrefix}-search`}
+      label="Search Type"
+      value={form.SearchType}
+      options={SEARCH_TYPE_OPTIONS}
+      error={errors.SearchType}
+      onChange={(v) => onChange({ SearchType: v })}
+    />
+  );
+  const cabinField = (
+    <OptionSelect
+      id={`${idPrefix}-cabin`}
+      label="Cabin"
+      withAll
+      value={form.Cabin}
+      options={CABIN_OPTIONS}
+      error={errors.Cabin}
+      // product class list depends on cabin, so reset it when cabin changes
+      onChange={(v) => onChange(productClassAfterCabin ? { Cabin: v, ProductClass: WILDCARD } : { Cabin: v })}
+    />
+  );
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -255,54 +324,23 @@ export function RuleFields({
         error={errors.Destination}
         onChange={(v) => onChange({ Destination: v })}
       />
-      <OptionSelect
-        id={`${idPrefix}-sector`}
-        label="Sector Type"
-        value={form.SectorType}
-        options={SECTOR_OPTIONS}
-        error={errors.SectorType}
-        onChange={(v) => onChange({ SectorType: v, ProductClass: WILDCARD })}
-      />
-      <OptionSelect
-        id={`${idPrefix}-pc`}
-        label="Product Class"
-        withAll
-        value={form.ProductClass}
-        options={productClasses.options ?? []}
-        error={errors.ProductClass}
-        onChange={(v) => onChange({ ProductClass: v })}
-      />
-      <IntField
-        id={`${idPrefix}-rs`}
-        label="Range Start"
-        value={form.RangeStart}
-        error={errors.RangeStart}
-        onChange={(v) => onChange({ RangeStart: v })}
-      />
-      <IntField
-        id={`${idPrefix}-re`}
-        label="Range End"
-        value={form.RangeEnd}
-        error={errors.RangeEnd}
-        onChange={(v) => onChange({ RangeEnd: v })}
-      />
-      <OptionSelect
-        id={`${idPrefix}-search`}
-        label="Search Type"
-        value={form.SearchType}
-        options={SEARCH_TYPE_OPTIONS}
-        error={errors.SearchType}
-        onChange={(v) => onChange({ SearchType: v })}
-      />
-      <OptionSelect
-        id={`${idPrefix}-cabin`}
-        label="Cabin"
-        withAll
-        value={form.Cabin}
-        options={CABIN_OPTIONS}
-        error={errors.Cabin}
-        onChange={(v) => onChange({ Cabin: v })}
-      />
+      {productClassAfterCabin ? (
+        <>
+          {sectorField}
+          {searchField}
+          {rangeFields}
+          {cabinField}
+          {productClassField}
+        </>
+      ) : (
+        <>
+          {sectorField}
+          {productClassField}
+          {rangeFields}
+          {searchField}
+          {cabinField}
+        </>
+      )}
       <div className="sm:col-span-2">
         <PaxCheckGroup value={form.PaxType} error={errors.PaxType} onChange={(v) => onChange({ PaxType: v })} />
       </div>

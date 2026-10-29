@@ -46,7 +46,11 @@ export const useCountries = () => useMasterList(getCountries);
 export const useFareModes = () => useMasterList(getFareDisplayModes);
 
 
-export function useProductClasses(airlineCode: string | null, sectorType: string): MasterState {
+/**
+ * Product classes for an airline, filtered by sector type and (optionally) cabin.
+ * `cabinCode` of "" / "*" / undefined means no cabin filtering.
+ */
+export function useProductClasses(airlineCode: string | null, sectorType: string, cabinCode?: string): MasterState {
   const [rows, setRows] = useState<ProductClassRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -70,17 +74,20 @@ export function useProductClasses(airlineCode: string | null, sectorType: string
   const options = useMemo<MasterOption[] | null>(() => {
     if (!rows) return null;
     const sector = sectorType?.trim().toUpperCase();
+    const cabin = cabinCode?.trim().toUpperCase();
+    const filterCabin = !!cabin && cabin !== "*";
     const seen = new Set<string>();
     const out: MasterOption[] = [];
     for (const r of rows) {
       if (sector && r.SectorType && r.SectorType.toUpperCase() !== sector) continue;
+      if (filterCabin && r.CabinCode && r.CabinCode.toUpperCase() !== cabin) continue;
       const key = r.ProductCode.toUpperCase();
       if (seen.has(key)) continue;
       seen.add(key);
       out.push({ value: r.ProductCode, label: r.ProductCode });
     }
     return out;
-  }, [rows, sectorType]);
+  }, [rows, sectorType, cabinCode]);
 
   return { options, loading, failed };
 }
