@@ -140,6 +140,7 @@ export interface BookingHistoryRequest {
 
 export interface BookingSummary {
   Id: string;
+  /** Raw creation timestamp from the API (history only). */
   CreatedAt?: string;
   Reference: string;
   Status: string;
@@ -581,6 +582,7 @@ export type FareTypeAddRequest = Pick<
 >;
 export type FareTypeUpdateRequest = FareTypeAddRequest & Pick<FareTypeDetail, "ProductId" | "IsActive">;
 
+/* ───────────── Master: Discount ───────────── */
 
 export interface DiscountDetail {
   Id: number;
@@ -609,6 +611,7 @@ export interface DiscountGetResponse {
 export type DiscountAddRequest = Omit<DiscountDetail, "Id">;
 export type DiscountUpdateRequest = DiscountDetail;
 
+/* ───────────── Master: Fare Rule ───────────── */
 
 export interface FareRuleDetail {
   Id: number;
@@ -630,6 +633,7 @@ export interface FareRuleDetail {
   CancellationRule: string;
   ChangeRule: string;
   NoShowRule: string;
+  GSTCharge: number;
   IsActive?: boolean;
   CreatedDate?: string;
 }
@@ -640,9 +644,11 @@ export interface FareRuleGetResponse {
   Message: string | null;
 }
 
+// Add / Update payloads do not carry IsActive / CreatedDate (read-only, server-managed).
 export type FareRuleAddRequest = Omit<FareRuleDetail, "Id" | "IsActive" | "CreatedDate">;
 export type FareRuleUpdateRequest = Omit<FareRuleDetail, "IsActive" | "CreatedDate">;
 
+/* ───────────── Master: Markup ───────────── */
 
 export interface MarkupDetail {
   Id: number;
@@ -668,3 +674,28 @@ export interface MarkupGetResponse {
 
 export type MarkupAddRequest = Omit<MarkupDetail, "Id">;
 export type MarkupUpdateRequest = MarkupDetail;
+
+
+export interface AmenityDetail {
+  Id: number;
+  ChannelCode: string;
+  AirlineCode: string;
+  Source: string;
+  Destination: string;
+  ProductClass: string;
+  FlightNo: string;
+  SectorType?: string; 
+  AmenityType: string;
+  AmenityComment: string;
+  IsActive: boolean;
+}
+
+export interface AmenityGetResponse {
+  AmenityDetails: AmenityDetail[];
+  ErrorCode: string | null;
+  Message: string | null;
+}
+
+export type AmenityAddRequest = Omit<AmenityDetail, "Id" | "IsActive" | "SectorType"> & { SectorType: string };
+
+export type AmenityUpdateRequest = AmenityAddRequest & { Id: number; IsActive: boolean };

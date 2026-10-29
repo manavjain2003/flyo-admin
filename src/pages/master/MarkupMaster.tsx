@@ -21,8 +21,11 @@ import {
   type Errors,
   type ModalMode,
   type RuleForm,
+  showAll,
 } from "./masterShared";
 
+// NOTE: the profile payload you shared has no markup view yet. "markupm" follows the
+// existing naming (discountm / farerulem / faretypem) — change it here if the backend uses another id.
 export const MARKUP_VIEW_ID = "markupm";
 
 interface FormState extends RuleForm {
@@ -219,17 +222,17 @@ export default function MarkupMaster() {
                   >
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.Id}</td>
                     <td className="px-5 py-3">{i.ChannelCode}</td>
-                    <td className="px-5 py-3 font-medium">{i.AirlineCode}</td>
+                    <td className="px-5 py-3 font-medium">{showAll(i.AirlineCode)}</td>
                     <td className="px-5 py-3 whitespace-nowrap">
-                      {i.Source} → {i.Destination}
+                      {showAll(i.Source)} → {showAll(i.Destination)}
                     </td>
-                    <td className="px-5 py-3">{i.ProductClass}</td>
+                    <td className="px-5 py-3">{showAll(i.ProductClass)}</td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       {i.RangeStart} – {i.RangeEnd}
                     </td>
                     <td className="px-5 py-3">{SECTOR_LABELS[i.SectorType] ?? i.SectorType}</td>
                     <td className="px-5 py-3">{SEARCH_TYPE_LABELS[i.SearchType] ?? i.SearchType}</td>
-                    <td className="px-5 py-3">{CABIN_LABELS[i.Cabin] ?? i.Cabin}</td>
+                    <td className="px-5 py-3">{showAll(CABIN_LABELS[i.Cabin] ?? i.Cabin)}</td>
                     <td className="px-5 py-3">
                       <PaxBadges pax={i.PaxType} />
                     </td>
@@ -285,15 +288,15 @@ export default function MarkupMaster() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <ReadOnlyRow label="ID" value={modal.item.Id} />
             <ReadOnlyRow label="Channel" value={modal.item.ChannelCode} />
-            <ReadOnlyRow label="Airline" value={modal.item.AirlineCode} />
-            <ReadOnlyRow label="Source" value={modal.item.Source} />
-            <ReadOnlyRow label="Destination" value={modal.item.Destination} />
-            <ReadOnlyRow label="Product Class" value={modal.item.ProductClass} />
+            <ReadOnlyRow label="Airline" value={showAll(modal.item.AirlineCode)} />
+            <ReadOnlyRow label="Source" value={showAll(modal.item.Source)} />
+            <ReadOnlyRow label="Destination" value={showAll(modal.item.Destination)} />
+            <ReadOnlyRow label="Product Class" value={showAll(modal.item.ProductClass)} />
             <ReadOnlyRow label="Range Start" value={modal.item.RangeStart} />
             <ReadOnlyRow label="Range End" value={modal.item.RangeEnd} />
             <ReadOnlyRow label="Sector" value={SECTOR_LABELS[modal.item.SectorType] ?? modal.item.SectorType} />
             <ReadOnlyRow label="Search Type" value={SEARCH_TYPE_LABELS[modal.item.SearchType] ?? modal.item.SearchType} />
-            <ReadOnlyRow label="Cabin" value={CABIN_LABELS[modal.item.Cabin] ?? modal.item.Cabin} />
+            <ReadOnlyRow label="Cabin" value={showAll(CABIN_LABELS[modal.item.Cabin] ?? modal.item.Cabin)} />
             <ReadOnlyRow label="Passenger Type" value={<PaxBadges pax={modal.item.PaxType} />} />
             <ReadOnlyRow label="Markup Amount" value={modal.item.MarkupAmount} />
           </div>

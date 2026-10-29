@@ -45,6 +45,9 @@ import type {
   MarkupGetResponse,
   MarkupAddRequest,
   MarkupUpdateRequest,
+  AmenityGetResponse,
+  AmenityAddRequest,
+  AmenityUpdateRequest,
 } from "../types";
 
 function extractErrorMessage(error: unknown): string {
@@ -646,6 +649,7 @@ export async function updateDiscount(payload: DiscountUpdateRequest): Promise<Si
   }
 }
 
+/* ───────────── Master: Fare Rule ───────────── */
 
 export async function getFareRules(signal?: AbortSignal): Promise<FareRuleGetResponse> {
   try {
@@ -675,6 +679,7 @@ export async function updateFareRule(payload: FareRuleUpdateRequest): Promise<Si
   }
 }
 
+/* ───────────── Master: Markup ───────────── */
 
 export async function getMarkups(signal?: AbortSignal): Promise<MarkupGetResponse> {
   try {
@@ -701,5 +706,35 @@ export async function updateMarkup(payload: MarkupUpdateRequest): Promise<Simple
     return data.ServiceResponse;
   } catch (error) {
     handleApiError("/MarkUp/Update", error);
+  }
+}
+
+/* ───────────── Master: Amenity ───────────── */
+
+export async function getAmenities(signal?: AbortSignal): Promise<AmenityGetResponse> {
+  try {
+    const { data } = await api.get<ApiEnvelope<AmenityGetResponse>>("/Amenity/Get", { signal });
+    return data.ServiceResponse;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    handleApiError("/Amenity/Get", error);
+  }
+}
+
+export async function addAmenity(payload: AmenityAddRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/Amenity/Add", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Amenity/Add", error);
+  }
+}
+
+export async function updateAmenity(payload: AmenityUpdateRequest): Promise<SimpleMessageResponse> {
+  try {
+    const { data } = await api.post<ApiEnvelope<SimpleMessageResponse>>("/Amenity/Update", payload);
+    return data.ServiceResponse;
+  } catch (error) {
+    handleApiError("/Amenity/Update", error);
   }
 }

@@ -19,6 +19,7 @@ import {
   isWholeNumber,
   type Errors,
   type ModalMode,
+  showAll,
 } from "./masterShared";
 
 export const FARERULE_VIEW_ID = "farerulem";
@@ -53,6 +54,7 @@ interface FormState {
   CancellationRule: string;
   ChangeRule: string;
   NoShowRule: string;
+  GSTCharge: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -74,6 +76,7 @@ const EMPTY_FORM: FormState = {
   CancellationRule: "",
   ChangeRule: "",
   NoShowRule: "",
+  GSTCharge: "0",
 };
 
 const day = (v?: string) => (v ?? "").slice(0, 10); // "2026-10-22T00:00:00" -> "2026-10-22"
@@ -97,6 +100,7 @@ const toForm = (d: FareRuleDetail): FormState => ({
   CancellationRule: d.CancellationRule ?? "",
   ChangeRule: d.ChangeRule ?? "",
   NoShowRule: d.NoShowRule ?? "",
+  GSTCharge: String(d.GSTCharge ?? 0),
 });
 
 function validate(f: FormState): Errors {
@@ -128,6 +132,7 @@ function validate(f: FormState): Errors {
   if (!f.CancellationRule.trim()) e.CancellationRule = "Required.";
   if (!f.ChangeRule.trim()) e.ChangeRule = "Required.";
   if (!f.NoShowRule.trim()) e.NoShowRule = "Required.";
+  if (!/^\d+(\.\d{1,2})?$/.test(f.GSTCharge.trim())) e.GSTCharge = "Enter a number (up to 2 decimals), e.g. 5 or 12.50.";
   return e;
 }
 
@@ -215,6 +220,7 @@ export default function FareRuleMaster() {
         CancellationRule: form.CancellationRule.trim(),
         ChangeRule: form.ChangeRule.trim(),
         NoShowRule: form.NoShowRule.trim(),
+        GSTCharge: Number(form.GSTCharge),
       };
       const res =
         modal.mode === "add" ? await addFareRule(body) : await updateFareRule({ Id: modal.item!.Id, ...body });
@@ -296,6 +302,7 @@ export default function FareRuleMaster() {
                   <th className="px-5 py-3 font-medium">Booking Window</th>
                   <th className="px-5 py-3 font-medium">Travel Window</th>
                   <th className="px-5 py-3 font-medium">Duration</th>
+                  <th className="px-5 py-3 font-medium text-right">GST</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium text-right">Actions</th>
                 </tr>
@@ -307,13 +314,13 @@ export default function FareRuleMaster() {
                     className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
                   >
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.Id}</td>
-                    <td className="px-5 py-3 font-medium">{i.AirlineCode}</td>
+                    <td className="px-5 py-3 font-medium">{showAll(i.AirlineCode)}</td>
                     <td className="px-5 py-3">{SECTOR_LABELS[i.SectorType] ?? i.SectorType}</td>
-                    <td className="px-5 py-3">{CABIN_LABELS[i.ClassCode] ?? i.ClassCode}</td>
-                    <td className="px-5 py-3">{i.FareType}</td>
-                    <td className="px-5 py-3">{i.Region}</td>
+                    <td className="px-5 py-3">{showAll(CABIN_LABELS[i.ClassCode] ?? i.ClassCode)}</td>
+                    <td className="px-5 py-3">{showAll(i.FareType)}</td>
+                    <td className="px-5 py-3">{showAll(i.Region)}</td>
                     <td className="px-5 py-3 whitespace-nowrap">
-                      {i.OriginCountryCode} → {i.DestinationCountryCode}
+                      {showAll(i.OriginCountryCode)} → {showAll(i.DestinationCountryCode)}
                     </td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       {day(i.BookingStartDate)} – {day(i.BookingEndDate)}
@@ -326,6 +333,7 @@ export default function FareRuleMaster() {
                       {i.DurationStartUnit} – {i.DurationEnd}
                       {i.DurationEndUnit}
                     </td>
+                    <td className="px-5 py-3 text-right">{i.GSTCharge ?? 0}</td>
                     <td className="px-5 py-3">
                       {typeof i.IsActive === "boolean" ? <StatusBadge active={i.IsActive} /> : "—"}
                     </td>
@@ -379,13 +387,13 @@ export default function FareRuleMaster() {
         {mode === "view" && modal?.item ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <ReadOnlyRow label="ID" value={modal.item.Id} />
-            <ReadOnlyRow label="Airline" value={modal.item.AirlineCode} />
+            <ReadOnlyRow label="Airline" value={showAll(modal.item.AirlineCode)} />
             <ReadOnlyRow label="Sector" value={SECTOR_LABELS[modal.item.SectorType] ?? modal.item.SectorType} />
-            <ReadOnlyRow label="Class" value={CABIN_LABELS[modal.item.ClassCode] ?? modal.item.ClassCode} />
-            <ReadOnlyRow label="Fare Type" value={modal.item.FareType} />
-            <ReadOnlyRow label="Region" value={modal.item.Region} />
-            <ReadOnlyRow label="Origin Country" value={modal.item.OriginCountryCode} />
-            <ReadOnlyRow label="Destination Country" value={modal.item.DestinationCountryCode} />
+            <ReadOnlyRow label="Class" value={showAll(CABIN_LABELS[modal.item.ClassCode] ?? modal.item.ClassCode)} />
+            <ReadOnlyRow label="Fare Type" value={showAll(modal.item.FareType)} />
+            <ReadOnlyRow label="Region" value={showAll(modal.item.Region)} />
+            <ReadOnlyRow label="Origin Country" value={showAll(modal.item.OriginCountryCode)} />
+            <ReadOnlyRow label="Destination Country" value={showAll(modal.item.DestinationCountryCode)} />
             <ReadOnlyRow
               label="Status"
               value={typeof modal.item.IsActive === "boolean" ? <StatusBadge active={modal.item.IsActive} /> : "—"}
@@ -408,6 +416,7 @@ export default function FareRuleMaster() {
             <ReadOnlyRow label="Cancellation Rule" value={modal.item.CancellationRule} />
             <ReadOnlyRow label="Change Rule" value={modal.item.ChangeRule} />
             <ReadOnlyRow label="No-Show Rule" value={modal.item.NoShowRule} />
+            <ReadOnlyRow label="GST Charge" value={modal.item.GSTCharge ?? 0} />
           </div>
         ) : (
           <form
@@ -566,6 +575,16 @@ export default function FareRuleMaster() {
               value={form.NoShowRule}
               error={errors.NoShowRule}
               onChange={(e) => patch({ NoShowRule: e.target.value })}
+            />
+            <FormField
+              id="fr-gst"
+              label="GST Charge"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0.00"
+              value={form.GSTCharge}
+              error={errors.GSTCharge}
+              onChange={(e) => patch({ GSTCharge: e.target.value.replace(/[^\d.]/g, "") })}
             />
           </form>
         )}

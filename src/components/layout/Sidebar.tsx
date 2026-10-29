@@ -73,6 +73,8 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
           { label: "Discount", to: "/master/discount", viewId: "discountm" },
           { label: "FareRule", to: "/master/fare-rule", viewId: "farerulem" },
           { label: "MarkUp", to: "/master/markup", viewId: "markupm" },
+          { label: "Amenities", to: "/master/amenity", viewId: "amenitym" },
+          // Add more sub-menus here; each shows only if the profile has "R" for its viewId
         ],
       },
     ],

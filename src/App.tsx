@@ -16,6 +16,7 @@ import FareTypeMaster from "./pages/master/FareTypeMaster";
 import DiscountMaster, { DISCOUNT_VIEW_ID } from "./pages/master/DiscountMaster";
 import FareRuleMaster, { FARERULE_VIEW_ID } from "./pages/master/FareRuleMaster";
 import MarkupMaster, { MARKUP_VIEW_ID } from "./pages/master/MarkupMaster";
+import AmenityMaster, { AMENITY_VIEW_ID } from "./pages/master/AmenityMaster";
 import Bookings from "./pages/bookings/Bookings";
 import BookingDetail from "./booking-detail/BookingDetail";
 import ComingSoon from "./pages/misc/ComingSoon";
@@ -59,6 +60,7 @@ export default function App() {
                 <Route path="/master/discount" element={<RequirePermission viewId={DISCOUNT_VIEW_ID}><DiscountMaster /></RequirePermission>} />
                 <Route path="/master/fare-rule" element={<RequirePermission viewId={FARERULE_VIEW_ID}><FareRuleMaster /></RequirePermission>} />
                 <Route path="/master/markup" element={<RequirePermission viewId={MARKUP_VIEW_ID}><MarkupMaster /></RequirePermission>} />
+                <Route path="/master/amenity" element={<RequirePermission viewId={AMENITY_VIEW_ID}><AmenityMaster /></RequirePermission>} />
               </Route>
 
               <Route path="/404" element={<NotFound />} />
