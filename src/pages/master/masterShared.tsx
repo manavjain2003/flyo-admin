@@ -324,13 +324,13 @@ export function RuleFields({
         error={errors.Destination}
         onChange={(v) => onChange({ Destination: v })}
       />
-      {productClassAfterCabin ? (
+         {productClassAfterCabin ? (
         <>
           {sectorField}
-          {searchField}
-          {rangeFields}
           {cabinField}
+          {searchField}
           {productClassField}
+          {rangeFields}
         </>
       ) : (
         <>
