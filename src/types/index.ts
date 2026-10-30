@@ -568,6 +568,7 @@ export interface FareTypeDetail {
   SectorType: string;
   CabinCode: string;
   IsActive: boolean;
+  CreatedDate?: string; 
 }
 
 export interface FareTypeGetResponse {
@@ -617,8 +618,9 @@ export interface FareRuleDetail {
   Id: number;
   AirlineCode: string;
   SectorType: string;
-  ClassCode: string;
+  Cabin: string;
   FareType: string;
+  FareFamily?: string;
   Region: string;
   OriginCountryCode: string;
   DestinationCountryCode: string;

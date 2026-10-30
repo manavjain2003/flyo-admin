@@ -33,7 +33,7 @@ interface FormState {
 }
 
 const AMENITY_TYPE_OPTIONS = [
-  { value: "Meal", label: "Meal" },
+  { value: "Free Meal", label: "Free Meal" },
   { value: "Wifi", label: "Wifi" },
 ];
 

@@ -3,12 +3,12 @@ import { Eye, Pencil, Plus } from "lucide-react";
 import { PageHeader, LoadingState, EmptyState, ErrorBanner, StatusBadge } from "../../components/common/UI";
 import { Modal } from "../../components/common/Modal";
 import { FormField } from "../../components/common/FormField";
-import { addFareRule, getFareRules, updateFareRule } from "../../api/endpoints";
+import { addFareRule, getFareRules, updateFareRule, getFareTypes } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { useAirlines, useCountries } from "../../config/useMaster";
 import { CABIN_OPTIONS, SECTOR_OPTIONS, WILDCARD } from "../../config/configValidation";
-import type { FareRuleDetail } from "../../types";
+import type { FareRuleDetail, FareTypeDetail } from "../../types";
 import {
   CABIN_LABELS,
   IntField,
@@ -38,8 +38,9 @@ const UNIT_LABELS: Record<string, string> = { H: "Hour(s)", D: "Day(s)" };
 interface FormState {
   AirlineCode: string;
   SectorType: string;
-  ClassCode: string;
+  Cabin: string;
   FareType: string;
+  FareFamily: string;
   Region: string;
   OriginCountryCode: string;
   DestinationCountryCode: string;
@@ -60,8 +61,9 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   AirlineCode: WILDCARD,
   SectorType: "D",
-  ClassCode: "E",
+  Cabin: "E",
   FareType: WILDCARD,
+  FareFamily: "",
   Region: WILDCARD,
   OriginCountryCode: "",
   DestinationCountryCode: "",
@@ -84,8 +86,9 @@ const day = (v?: string) => (v ?? "").slice(0, 10); // "2026-10-22T00:00:00" -> 
 const toForm = (d: FareRuleDetail): FormState => ({
   AirlineCode: d.AirlineCode,
   SectorType: d.SectorType,
-  ClassCode: d.ClassCode,
+  Cabin: d.Cabin,
   FareType: d.FareType,
+  FareFamily: d.FareFamily ?? "",
   Region: d.Region,
   OriginCountryCode: d.OriginCountryCode,
   DestinationCountryCode: d.DestinationCountryCode,
@@ -107,7 +110,7 @@ function validate(f: FormState): Errors {
   const e: Errors = {};
   if (!f.AirlineCode) e.AirlineCode = "Select an airline (or All).";
   if (!f.SectorType) e.SectorType = "Select a sector type.";
-  if (!f.ClassCode) e.ClassCode = "Select a class.";
+   if (!f.Cabin) e.Cabin = "Select a cabin.";
   if (!f.FareType) e.FareType = "Select a fare type (or All).";
   if (!f.Region) e.Region = "Select a region (or All).";
   if (!f.OriginCountryCode) e.OriginCountryCode = "Select an origin country.";
@@ -155,6 +158,35 @@ export default function FareRuleMaster() {
 
   const airlines = useAirlines();
   const countries = useCountries();
+const [fareTypes, setFareTypes] = useState<FareTypeDetail[]>([]);
+
+useEffect(() => {
+  const c = new AbortController();
+  getFareTypes(c.signal)
+    .then((res) => {
+      if (!c.signal.aborted && !res.ErrorCode) setFareTypes(res.ProductClassDetails ?? []);
+    })
+    .catch(() => {});
+  return () => c.abort();
+}, []);
+
+// Fare families (ProductCode) valid for a sector + cabin
+const fareFamiliesFor = useCallback(
+  (sector: string, cabin: string) => {
+    const codes = new Set<string>();
+    for (const f of fareTypes) {
+      if (f.IsActive && f.SectorType === sector && f.CabinCode === cabin) codes.add(f.ProductCode);
+    }
+    return codes;
+  },
+  [fareTypes]
+);
+
+const fareFamilyOptions = useMemo(() => {
+  const codes = fareFamiliesFor(form.SectorType, form.Cabin);
+  if (form.FareFamily) codes.add(form.FareFamily); // keep a saved value (e.g. "TEST") visible when editing
+  return [...codes].sort().map((v) => ({ value: v, label: v }));
+}, [fareFamiliesFor, form.SectorType, form.Cabin, form.FareFamily]);
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -204,8 +236,8 @@ export default function FareRuleMaster() {
       const body = {
         AirlineCode: form.AirlineCode,
         SectorType: form.SectorType,
-        ClassCode: form.ClassCode,
-        FareType: form.FareType,
+        Cabin: form.Cabin,
+        FareFamily: form.FareFamily,
         Region: form.Region,
         OriginCountryCode: form.OriginCountryCode,
         DestinationCountryCode: form.DestinationCountryCode,
@@ -243,7 +275,7 @@ export default function FareRuleMaster() {
     return items.filter((i) => {
       if (sector && i.SectorType !== sector) return false;
       if (!q) return true;
-      return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType, i.Region].some((v) =>
+return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType, i.FareFamily, i.Region].some((v) =>
         String(v ?? "").toLowerCase().includes(q)
       );
     });
@@ -295,8 +327,9 @@ export default function FareRuleMaster() {
                   <th className="px-5 py-3 font-medium">ID</th>
                   <th className="px-5 py-3 font-medium">Airline</th>
                   <th className="px-5 py-3 font-medium">Sector</th>
-                  <th className="px-5 py-3 font-medium">Class</th>
+                  <th className="px-5 py-3 font-medium">Cabin</th>
                   <th className="px-5 py-3 font-medium">Fare Type</th>
+                  <th className="px-5 py-3 font-medium">Fare Family</th>
                   <th className="px-5 py-3 font-medium">Region</th>
                   <th className="px-5 py-3 font-medium">Countries</th>
                   <th className="px-5 py-3 font-medium">Booking Window</th>
@@ -316,8 +349,9 @@ export default function FareRuleMaster() {
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.Id}</td>
                     <td className="px-5 py-3 font-medium">{showAll(i.AirlineCode)}</td>
                     <td className="px-5 py-3">{SECTOR_LABELS[i.SectorType] ?? i.SectorType}</td>
-                    <td className="px-5 py-3">{showAll(CABIN_LABELS[i.ClassCode] ?? i.ClassCode)}</td>
+                    <td className="px-5 py-3">{showAll(CABIN_LABELS[i.Cabin] ?? i.Cabin)}</td>
                     <td className="px-5 py-3">{showAll(i.FareType)}</td>
+                    <td className="px-5 py-3">{i.FareFamily || "—"}</td>
                     <td className="px-5 py-3">{showAll(i.Region)}</td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       {showAll(i.OriginCountryCode)} → {showAll(i.DestinationCountryCode)}
@@ -389,8 +423,9 @@ export default function FareRuleMaster() {
             <ReadOnlyRow label="ID" value={modal.item.Id} />
             <ReadOnlyRow label="Airline" value={showAll(modal.item.AirlineCode)} />
             <ReadOnlyRow label="Sector" value={SECTOR_LABELS[modal.item.SectorType] ?? modal.item.SectorType} />
-            <ReadOnlyRow label="Class" value={showAll(CABIN_LABELS[modal.item.ClassCode] ?? modal.item.ClassCode)} />
+<ReadOnlyRow label="Cabin" value={showAll(CABIN_LABELS[modal.item.Cabin] ?? modal.item.Cabin)} />
             <ReadOnlyRow label="Fare Type" value={showAll(modal.item.FareType)} />
+            <ReadOnlyRow label="Fare Family" value={modal.item.FareFamily || "—"} />
             <ReadOnlyRow label="Region" value={showAll(modal.item.Region)} />
             <ReadOnlyRow label="Origin Country" value={showAll(modal.item.OriginCountryCode)} />
             <ReadOnlyRow label="Destination Country" value={showAll(modal.item.DestinationCountryCode)} />
@@ -443,15 +478,26 @@ export default function FareRuleMaster() {
                 value={form.SectorType}
                 options={SECTOR_OPTIONS}
                 error={errors.SectorType}
-                onChange={(v) => patch({ SectorType: v })}
+                onChange={(v) =>
+                  patch({
+                    SectorType: v,
+                    FareFamily: fareFamiliesFor(v, form.Cabin).has(form.FareFamily) ? form.FareFamily : "",
+})
+                }
+
               />
               <OptionSelect
                 id="fr-class"
-                label="Class"
-                value={form.ClassCode}
+                label="Cabin"
+                value={form.Cabin}
                 options={CABIN_OPTIONS}
-                error={errors.ClassCode}
-                onChange={(v) => patch({ ClassCode: v })}
+                error={errors.Cabin}
+                onChange={(v) =>
+                  patch({
+                   Cabin: v,
+                    FareFamily: fareFamiliesFor(form.SectorType, v).has(form.FareFamily) ? form.FareFamily : "",
+                  })
+                }
               />
               <OptionSelect
                 id="fr-faretype"
@@ -461,6 +507,15 @@ export default function FareRuleMaster() {
                 options={FARE_TYPE_OPTIONS}
                 error={errors.FareType}
                 onChange={(v) => patch({ FareType: v })}
+              />
+              <OptionSelect
+                id="fr-family"
+                label="Fare Family"
+                placeholder={fareFamilyOptions.length ? "Select fare family" : "No fare family for this sector/cabin"}
+                value={form.FareFamily}
+                options={fareFamilyOptions}
+                error={errors.FareFamily}
+                onChange={(v) => patch({ FareFamily: v })}
               />
               <OptionSelect
                 id="fr-region"

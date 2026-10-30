@@ -53,7 +53,9 @@ function ReadOnlyRow({ label, value }: { label: string; value: React.ReactNode }
     </div>
   );
 }
-
+function formatCreatedDate(value?: string | null) {
+  return value && value.trim() ? value : "—";
+}
 export default function FareTypeMaster() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission("faretypem", "W");
@@ -238,6 +240,7 @@ export default function FareTypeMaster() {
                   <th className="px-5 py-3 font-medium">Sector</th>
                   <th className="px-5 py-3 font-medium">Cabin</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Created Date</th>
                   <th className="px-5 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
@@ -255,6 +258,9 @@ export default function FareTypeMaster() {
                     <td className="px-5 py-3">{CABIN_LABELS[i.CabinCode] ?? i.CabinCode}</td>
                     <td className="px-5 py-3">
                       <StatusBadge active={i.IsActive} />
+                    </td>
+                     <td className="px-5 py-3 whitespace-nowrap text-[var(--color-text-secondary)]">
+                      {formatCreatedDate(i.CreatedDate)}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
@@ -309,6 +315,7 @@ export default function FareTypeMaster() {
             <ReadOnlyRow label="Sector" value={SECTOR_LABELS[modal.item.SectorType] ?? modal.item.SectorType} />
             <ReadOnlyRow label="Cabin" value={CABIN_LABELS[modal.item.CabinCode] ?? modal.item.CabinCode} />
             <ReadOnlyRow label="Status" value={<StatusBadge active={modal.item.IsActive} />} />
+            <ReadOnlyRow label="Created Date" value={formatCreatedDate(modal.item.CreatedDate)} />
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
