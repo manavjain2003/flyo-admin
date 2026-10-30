@@ -650,7 +650,6 @@ export interface FareRuleGetResponse {
 export type FareRuleAddRequest = Omit<FareRuleDetail, "Id" | "IsActive" | "CreatedDate">;
 export type FareRuleUpdateRequest = Omit<FareRuleDetail, "IsActive" | "CreatedDate">;
 
-/* ───────────── Master: Markup ───────────── */
 
 export interface MarkupDetail {
   Id: number;

@@ -53,9 +53,41 @@ function ReadOnlyRow({ label, value }: { label: string; value: React.ReactNode }
     </div>
   );
 }
+
 function formatCreatedDate(value?: string | null) {
   return value && value.trim() ? value : "—";
 }
+
+// "10/29/2026 1:12:43 PM" (or ISO "2026-10-22T07:16:48") -> Date | null
+function parseCreatedDate(value?: string | null): Date | null {
+  if (!value || !value.trim()) return null;
+  const m = value
+    .trim()
+    .match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?$/i);
+  if (m) {
+    const [, mo, d, y, hh, mm, ss, ap] = m;
+    let h = Number(hh ?? 0);
+    if (ap) {
+      const pm = ap.toUpperCase() === "PM";
+      if (pm && h < 12) h += 12;
+      if (!pm && h === 12) h = 0;
+    }
+    return new Date(Number(y), Number(mo) - 1, Number(d), h, Number(mm ?? 0), Number(ss ?? 0));
+  }
+  const iso = new Date(value); // fallback for ISO strings
+  return isNaN(iso.getTime()) ? null : iso;
+}
+
+// Date -> "yyyy-mm-dd" in local time, for <input type="date">
+function toInputDate(d: Date) {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// "yyyy-mm-dd" -> local start / end of that day
+const startOfDay = (s: string) => new Date(`${s}T00:00:00`);
+const endOfDay = (s: string) => new Date(`${s}T23:59:59.999`);
+
 export default function FareTypeMaster() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission("faretypem", "W");
@@ -74,6 +106,16 @@ export default function FareTypeMaster() {
   const [sector, setSector] = useState("");
   const [cabin, setCabin] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  function setQuickRange(days: number) {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(to.getDate() - (days - 1)); // days=1 -> today only
+    setDateFrom(toInputDate(from));
+    setDateTo(toInputDate(to));
+  }
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -162,11 +204,19 @@ export default function FareTypeMaster() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const from = dateFrom ? startOfDay(dateFrom) : null;
+    const to = dateTo ? endOfDay(dateTo) : null;
     return items.filter((i) => {
       if (sector && i.SectorType !== sector) return false;
       if (cabin && i.CabinCode !== cabin) return false;
       if (status === "active" && !i.IsActive) return false;
       if (status === "inactive" && i.IsActive) return false;
+      if (from || to) {
+        const created = parseCreatedDate(i.CreatedDate);
+        if (!created) return false; // no date -> can't match a date filter
+        if (from && created < from) return false;
+        if (to && created > to) return false;
+      }
       if (!q) return true;
       return (
         i.ProductCode.toLowerCase().includes(q) ||
@@ -174,7 +224,7 @@ export default function FareTypeMaster() {
         i.ProviderCode.toLowerCase().includes(q)
       );
     });
-  }, [items, search, sector, cabin, status]);
+  }, [items, search, sector, cabin, status, dateFrom, dateTo]);
 
   return (
     <div>
@@ -212,6 +262,42 @@ export default function FareTypeMaster() {
             <option value="inactive">Inactive</option>
           </select>
         </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-[var(--color-text-secondary)]">Created</span>
+          <input
+            type="date"
+            className="input-base"
+            style={{ width: "auto" }}
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="Created from"
+          />
+          <span className="text-xs text-[var(--color-text-muted)]">to</span>
+          <input
+            type="date"
+            className="input-base"
+            style={{ width: "auto" }}
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+            aria-label="Created to"
+          />
+          <button type="button" className="btn-secondary" onClick={() => setQuickRange(1)}>Today</button>
+          <button type="button" className="btn-secondary" onClick={() => setQuickRange(7)}>7 days</button>
+          <button type="button" className="btn-secondary" onClick={() => setQuickRange(30)}>30 days</button>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         {canWrite && (
           <button className="btn-primary ml-auto" onClick={() => openModal("add")}>
             <Plus size={16} /> Add Fare Type
@@ -259,7 +345,7 @@ export default function FareTypeMaster() {
                     <td className="px-5 py-3">
                       <StatusBadge active={i.IsActive} />
                     </td>
-                     <td className="px-5 py-3 whitespace-nowrap text-[var(--color-text-secondary)]">
+                    <td className="px-5 py-3 whitespace-nowrap text-[var(--color-text-secondary)]">
                       {formatCreatedDate(i.CreatedDate)}
                     </td>
                     <td className="px-5 py-3">
