@@ -238,6 +238,7 @@ const fareFamilyOptions = useMemo(() => {
         SectorType: form.SectorType,
         Cabin: form.Cabin,
         FareFamily: form.FareFamily,
+        FareType: form.FareType,
         Region: form.Region,
         OriginCountryCode: form.OriginCountryCode,
         DestinationCountryCode: form.DestinationCountryCode,
