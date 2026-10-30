@@ -110,7 +110,7 @@ function validate(f: FormState): Errors {
   const e: Errors = {};
   if (!f.AirlineCode) e.AirlineCode = "Select an airline (or All).";
   if (!f.SectorType) e.SectorType = "Select a sector type.";
-   if (!f.Cabin) e.Cabin = "Select a cabin.";
+  if (!f.Cabin) e.Cabin = "Select a cabin.";
   if (!f.FareType) e.FareType = "Select a fare type (or All).";
   if (!f.Region) e.Region = "Select a region (or All).";
   if (!f.OriginCountryCode) e.OriginCountryCode = "Select an origin country.";
@@ -158,35 +158,37 @@ export default function FareRuleMaster() {
 
   const airlines = useAirlines();
   const countries = useCountries();
-const [fareTypes, setFareTypes] = useState<FareTypeDetail[]>([]);
 
-useEffect(() => {
-  const c = new AbortController();
-  getFareTypes(c.signal)
-    .then((res) => {
-      if (!c.signal.aborted && !res.ErrorCode) setFareTypes(res.ProductClassDetails ?? []);
-    })
-    .catch(() => {});
-  return () => c.abort();
-}, []);
+  // Fare types (product classes) -> used to build the Fare Family dropdown
+  const [fareTypes, setFareTypes] = useState<FareTypeDetail[]>([]);
 
-// Fare families (ProductCode) valid for a sector + cabin
-const fareFamiliesFor = useCallback(
-  (sector: string, cabin: string) => {
-    const codes = new Set<string>();
-    for (const f of fareTypes) {
-      if (f.IsActive && f.SectorType === sector && f.CabinCode === cabin) codes.add(f.ProductCode);
-    }
-    return codes;
-  },
-  [fareTypes]
-);
+  useEffect(() => {
+    const c = new AbortController();
+    getFareTypes(c.signal)
+      .then((res) => {
+        if (!c.signal.aborted && !res.ErrorCode) setFareTypes(res.ProductClassDetails ?? []);
+      })
+      .catch(() => {});
+    return () => c.abort();
+  }, []);
 
-const fareFamilyOptions = useMemo(() => {
-  const codes = fareFamiliesFor(form.SectorType, form.Cabin);
-  if (form.FareFamily) codes.add(form.FareFamily); // keep a saved value (e.g. "TEST") visible when editing
-  return [...codes].sort().map((v) => ({ value: v, label: v }));
-}, [fareFamiliesFor, form.SectorType, form.Cabin, form.FareFamily]);
+  // Fare families (ProductCode) valid for a sector + cabin
+  const fareFamiliesFor = useCallback(
+    (sectorType: string, cabin: string) => {
+      const codes = new Set<string>();
+      for (const f of fareTypes) {
+        if (f.IsActive && f.SectorType === sectorType && f.CabinCode === cabin) codes.add(f.ProductCode);
+      }
+      return codes;
+    },
+    [fareTypes]
+  );
+
+  const fareFamilyOptions = useMemo(() => {
+    const codes = fareFamiliesFor(form.SectorType, form.Cabin);
+    if (form.FareFamily) codes.add(form.FareFamily); // keep a saved value (e.g. "TEST") visible when editing
+    return [...codes].sort().map((v) => ({ value: v, label: v }));
+  }, [fareFamiliesFor, form.SectorType, form.Cabin, form.FareFamily]);
 
   const loadData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -237,8 +239,8 @@ const fareFamilyOptions = useMemo(() => {
         AirlineCode: form.AirlineCode,
         SectorType: form.SectorType,
         Cabin: form.Cabin,
-        FareFamily: form.FareFamily,
         FareType: form.FareType,
+        FareFamily: form.FareFamily,
         Region: form.Region,
         OriginCountryCode: form.OriginCountryCode,
         DestinationCountryCode: form.DestinationCountryCode,
@@ -276,8 +278,8 @@ const fareFamilyOptions = useMemo(() => {
     return items.filter((i) => {
       if (sector && i.SectorType !== sector) return false;
       if (!q) return true;
-return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType, i.FareFamily, i.Region].some((v) =>
-        String(v ?? "").toLowerCase().includes(q)
+      return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType, i.FareFamily, i.Region].some(
+        (v) => String(v ?? "").toLowerCase().includes(q)
       );
     });
   }, [items, search, sector]);
@@ -289,7 +291,7 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
     <div>
       <PageHeader
         title="Farerule Master"
-        description="Cancellation, change and no-show rules by airline, class, country and validity window."
+        description="Cancellation, change and no-show rules by airline, cabin, country and validity window."
       />
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -424,7 +426,7 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
             <ReadOnlyRow label="ID" value={modal.item.Id} />
             <ReadOnlyRow label="Airline" value={showAll(modal.item.AirlineCode)} />
             <ReadOnlyRow label="Sector" value={SECTOR_LABELS[modal.item.SectorType] ?? modal.item.SectorType} />
-<ReadOnlyRow label="Cabin" value={showAll(CABIN_LABELS[modal.item.Cabin] ?? modal.item.Cabin)} />
+            <ReadOnlyRow label="Cabin" value={showAll(CABIN_LABELS[modal.item.Cabin] ?? modal.item.Cabin)} />
             <ReadOnlyRow label="Fare Type" value={showAll(modal.item.FareType)} />
             <ReadOnlyRow label="Fare Family" value={modal.item.FareFamily || "—"} />
             <ReadOnlyRow label="Region" value={showAll(modal.item.Region)} />
@@ -463,7 +465,7 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
             className="flex flex-col gap-4"
           >
             {formError && <ErrorBanner message={formError} />}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <OptionSelect
                 id="fr-airline"
                 label="Airline"
@@ -483,19 +485,18 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
                   patch({
                     SectorType: v,
                     FareFamily: fareFamiliesFor(v, form.Cabin).has(form.FareFamily) ? form.FareFamily : "",
-})
+                  })
                 }
-
               />
               <OptionSelect
-                id="fr-class"
+                id="fr-cabin"
                 label="Cabin"
                 value={form.Cabin}
                 options={CABIN_OPTIONS}
                 error={errors.Cabin}
                 onChange={(v) =>
                   patch({
-                   Cabin: v,
+                    Cabin: v,
                     FareFamily: fareFamiliesFor(form.SectorType, v).has(form.FareFamily) ? form.FareFamily : "",
                   })
                 }
@@ -527,7 +528,6 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
                 error={errors.Region}
                 onChange={(v) => patch({ Region: v })}
               />
-              <div />
               <OptionSelect
                 id="fr-origin"
                 label="Origin Country"
@@ -610,38 +610,38 @@ return [i.AirlineCode, i.OriginCountryCode, i.DestinationCountryCode, i.FareType
                 error={errors.DurationEndUnit}
                 onChange={(v) => patch({ DurationEndUnit: v })}
               />
+              <FormField
+                id="fr-cancel"
+                label="Cancellation Rule"
+                value={form.CancellationRule}
+                error={errors.CancellationRule}
+                onChange={(e) => patch({ CancellationRule: e.target.value })}
+              />
+              <FormField
+                id="fr-change"
+                label="Change Rule"
+                value={form.ChangeRule}
+                error={errors.ChangeRule}
+                onChange={(e) => patch({ ChangeRule: e.target.value })}
+              />
+              <FormField
+                id="fr-noshow"
+                label="No-Show Rule"
+                value={form.NoShowRule}
+                error={errors.NoShowRule}
+                onChange={(e) => patch({ NoShowRule: e.target.value })}
+              />
+              <FormField
+                id="fr-gst"
+                label="GST Charge"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0.00"
+                value={form.GSTCharge}
+                error={errors.GSTCharge}
+                onChange={(e) => patch({ GSTCharge: e.target.value.replace(/[^\d.]/g, "") })}
+              />
             </div>
-            <FormField
-              id="fr-cancel"
-              label="Cancellation Rule"
-              value={form.CancellationRule}
-              error={errors.CancellationRule}
-              onChange={(e) => patch({ CancellationRule: e.target.value })}
-            />
-            <FormField
-              id="fr-change"
-              label="Change Rule"
-              value={form.ChangeRule}
-              error={errors.ChangeRule}
-              onChange={(e) => patch({ ChangeRule: e.target.value })}
-            />
-            <FormField
-              id="fr-noshow"
-              label="No-Show Rule"
-              value={form.NoShowRule}
-              error={errors.NoShowRule}
-              onChange={(e) => patch({ NoShowRule: e.target.value })}
-            />
-            <FormField
-              id="fr-gst"
-              label="GST Charge"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0.00"
-              value={form.GSTCharge}
-              error={errors.GSTCharge}
-              onChange={(e) => patch({ GSTCharge: e.target.value.replace(/[^\d.]/g, "") })}
-            />
           </form>
         )}
       </Modal>
