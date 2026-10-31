@@ -15,6 +15,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useAirlines } from "../../config/useMaster";
 import { CABIN_OPTIONS, CHANNEL_OPTIONS, SECTOR_OPTIONS } from "../../config/configValidation";
 import type { FareTypeDetail } from "../../types";
+import { PrefillNotice } from "./PrefillNotice";
+import { useRowDragToAdd } from "./useRowDragToAdd";
 
 const SECTOR_LABELS: Record<string, string> = { D: "Domestic", I: "International" };
 const CABIN_LABELS: Record<string, string> = {
@@ -160,6 +162,12 @@ export default function FareTypeMaster() {
     setModal({ mode, item });
   }
 
+  // Drag a row onto "Add Fare Type" -> add modal opens pre-filled with that row's values.
+  const dnd = useRowDragToAdd<FareTypeDetail>({
+    enabled: canWrite,
+    onDropRow: (row) => openModal("add", row),
+  });
+
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (!modal || modal.mode === "view") return;
@@ -299,7 +307,11 @@ export default function FareTypeMaster() {
         </div>
 
         {canWrite && (
-          <button className="btn-primary ml-auto" onClick={() => openModal("add")}>
+          <button
+            className={`btn-primary ml-auto ${dnd.addButtonClass}`}
+            onClick={() => openModal("add")}
+            {...dnd.addTargetProps}
+          >
             <Plus size={16} /> Add Fare Type
           </button>
         )}
@@ -334,7 +346,8 @@ export default function FareTypeMaster() {
                 {filtered.map((i) => (
                   <tr
                     key={i.ProductId}
-                    className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
+                    className={`border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors ${dnd.rowClass(i.ProductId)}`}
+                    {...dnd.rowProps(i, i.ProductId)}
                   >
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.ProductId}</td>
                     <td className="px-5 py-3 font-medium">{i.ProductCode}</td>
@@ -370,6 +383,7 @@ export default function FareTypeMaster() {
       {!loading && !error && (
         <p className="mt-3 text-xs text-[var(--color-text-muted)]">
           Showing {filtered.length} of {items.length}
+          {canWrite && " · Tip: drag a row onto the Add button to create a copy."}
         </p>
       )}
 
@@ -405,6 +419,7 @@ export default function FareTypeMaster() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {modal?.mode === "add" && modal.item && <PrefillNotice source={`fare type #${modal.item.ProductId}`} />}
             {formError && <ErrorBanner message={formError} />}
             <FormField
               id="ft-code"

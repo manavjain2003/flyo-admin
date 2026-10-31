@@ -21,6 +21,8 @@ import {
   type ModalMode,
   showAll,
 } from "./masterShared";
+import { PrefillNotice } from "./PrefillNotice";
+import { useRowDragToAdd } from "./useRowDragToAdd";
 
 export const FARERULE_VIEW_ID = "farerulem";
 
@@ -222,6 +224,12 @@ export default function FareRuleMaster() {
     setModal({ mode, item });
   }
 
+  // Drag a row onto "Add Fare Rule" -> add modal opens pre-filled with that row's values.
+  const dnd = useRowDragToAdd<FareRuleDetail>({
+    enabled: canWrite,
+    onDropRow: (row) => openModal("add", row),
+  });
+
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
   async function handleSubmit() {
@@ -307,7 +315,11 @@ export default function FareRuleMaster() {
           <option value="I">International</option>
         </select>
         {canWrite && (
-          <button className="btn-primary ml-auto" onClick={() => openModal("add")}>
+          <button
+            className={`btn-primary ml-auto ${dnd.addButtonClass}`}
+            onClick={() => openModal("add")}
+            {...dnd.addTargetProps}
+          >
             <Plus size={16} /> Add Fare Rule
           </button>
         )}
@@ -347,7 +359,8 @@ export default function FareRuleMaster() {
                 {filtered.map((i) => (
                   <tr
                     key={i.Id}
-                    className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
+                    className={`border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors ${dnd.rowClass(i.Id)}`}
+                    {...dnd.rowProps(i, i.Id)}
                   >
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.Id}</td>
                     <td className="px-5 py-3 font-medium">{showAll(i.AirlineCode)}</td>
@@ -396,6 +409,7 @@ export default function FareRuleMaster() {
       {!loading && !error && (
         <p className="mt-3 text-xs text-[var(--color-text-muted)]">
           Showing {filtered.length} of {items.length}
+          {canWrite && " · Tip: drag a row onto the Add button to create a copy."}
         </p>
       )}
 
@@ -464,6 +478,7 @@ export default function FareRuleMaster() {
             }}
             className="flex flex-col gap-4"
           >
+            {mode === "add" && modal?.item && <PrefillNotice source={`fare rule #${modal.item.Id}`} />}
             {formError && <ErrorBanner message={formError} />}
             <div className="grid grid-cols-2 gap-4">
               <OptionSelect

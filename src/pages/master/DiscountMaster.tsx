@@ -24,6 +24,8 @@ import {
   type RuleForm,
   showAll,
 } from "./masterShared";
+import { PrefillNotice } from "./PrefillNotice";
+import { useRowDragToAdd } from "./useRowDragToAdd";
 
 export const DISCOUNT_VIEW_ID = "discountm";
 
@@ -113,6 +115,12 @@ export default function DiscountMaster() {
     setModal({ mode, item });
   }
 
+  // Drag a row onto "Add Discount" -> add modal opens pre-filled with that row's values.
+  const dnd = useRowDragToAdd<DiscountDetail>({
+    enabled: canWrite,
+    onDropRow: (row) => openModal("add", row),
+  });
+
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
   async function handleSubmit() {
@@ -194,7 +202,11 @@ export default function DiscountMaster() {
           <option value="I">International</option>
         </select>
         {canWrite && (
-          <button className="btn-primary ml-auto" onClick={() => openModal("add")}>
+          <button
+            className={`btn-primary ml-auto ${dnd.addButtonClass}`}
+            onClick={() => openModal("add")}
+            {...dnd.addTargetProps}
+          >
             <Plus size={16} /> Add Discount
           </button>
         )}
@@ -233,7 +245,8 @@ export default function DiscountMaster() {
                 {filtered.map((i) => (
                   <tr
                     key={i.Id}
-                    className="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors"
+                    className={`border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface-2)]/50 transition-colors ${dnd.rowClass(i.Id)}`}
+                    {...dnd.rowProps(i, i.Id)}
                   >
                     <td className="px-5 py-3 text-[var(--color-text-muted)]">{i.Id}</td>
                     <td className="px-5 py-3">{i.ChannelCode}</td>
@@ -275,6 +288,7 @@ export default function DiscountMaster() {
       {!loading && !error && (
         <p className="mt-3 text-xs text-[var(--color-text-muted)]">
           Showing {filtered.length} of {items.length}
+          {canWrite && " · Tip: drag a row onto the Add button to create a copy."}
         </p>
       )}
 
@@ -326,6 +340,7 @@ export default function DiscountMaster() {
             }}
             className="flex flex-col gap-4"
           >
+            {mode === "add" && modal?.item && <PrefillNotice source={`discount #${modal.item.Id}`} />}
             {formError && <ErrorBanner message={formError} />}
            <RuleFields form={form} errors={errors} onChange={patch} idPrefix="disc" productClassAfterCabin />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
